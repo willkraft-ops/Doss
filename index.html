@@ -332,6 +332,30 @@ const STATE = {
 };
 
 // ============================================================
+// STATE PERSISTENCE
+// ============================================================
+function saveState() {
+  try {
+    localStorage.setItem('doss_briefs', JSON.stringify(STATE.briefs));
+    localStorage.setItem('doss_chats', JSON.stringify(STATE.chats));
+    localStorage.setItem('doss_debriefs', JSON.stringify(STATE.debriefs));
+  } catch(e) { console.warn('State save failed:', e); }
+}
+
+function loadState() {
+  try {
+    const briefs = localStorage.getItem('doss_briefs');
+    const chats = localStorage.getItem('doss_chats');
+    const debriefs = localStorage.getItem('doss_debriefs');
+    if (briefs) STATE.briefs = JSON.parse(briefs);
+    if (chats) STATE.chats = JSON.parse(chats);
+    if (debriefs) STATE.debriefs = JSON.parse(debriefs);
+  } catch(e) { console.warn('State load failed:', e); }
+}
+
+loadState();
+
+// ============================================================
 // GOOGLE AUTH — OAuth 2.0 with token client
 // ============================================================
 let tokenClient;
@@ -509,15 +533,16 @@ async function backgroundLoadWeek() {
   const dow = STATE.currentDate.getDay();
   const monday = new Date(STATE.currentDate);
   monday.setDate(STATE.currentDate.getDate() - (dow === 0 ? 6 : dow - 1));
-  for (let i = 0; i < 5; i++) {
+  const days = Array.from({length: 5}, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    const key = dateKey(d);
-    if (!STATE.dayCache[key]) {
-      await loadDay(d);
-      if (dateKey(STATE.currentDate) === key) renderMeetingList();
-    }
-  }
+    return d;
+  }).filter(d => !STATE.dayCache[dateKey(d)]);
+  // Load all days in parallel instead of sequentially
+  await Promise.all(days.map(async d => {
+    await loadDay(d);
+    if (dateKey(STATE.currentDate) === dateKey(d)) renderMeetingList();
+  }));
 }
 
 function getCurrentMeetings() {
@@ -840,6 +865,7 @@ Research each external attendee and their company thoroughly.` }],
   }
 
   delete STATE.generating[m.id];
+  saveState();
   renderMeetingList();
   renderDetail();
 }
@@ -864,16 +890,20 @@ async function sendChat(m) {
   const apiKey=document.getElementById('apiKey').value.trim(); if(!apiKey){alert('Enter API key.');return;}
   STATE.chats[m.id].push({role:'user',content:msg}); inp.value=''; inp.style.height='auto';
   renderStrategyTab(document.getElementById('tabContent'),m);
-  const bc = STATE.briefs[m.id]?`Dossier:\n${htmlToText(STATE.briefs[m.id])}`:'No dossier yet.';
+  // Trim brief to plain text capped at 800 chars — avoid paying for full HTML on every message
+  const briefText = STATE.briefs[m.id] ? htmlToText(STATE.briefs[m.id]).trim().slice(0, 800) : '';
+  const bc = briefText ? `Dossier:\n${briefText}` : 'No dossier yet.';
   const ai = (m.attendees||[]).map(a=>`${a.name||'?'} (${a.email||''})`).join(', ');
+  const userName = localStorage.getItem('doss_username') || 'the AE';
+  const userOrg = localStorage.getItem('doss_orgdomain') || 'your company';
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,system:`You are Doss, sales advisor for Will (AE at Aleph). Meeting: ${m.title}. Attendees: ${ai}. ${bc}\nBe direct. No fluff. Use web search for current info.`,
-        messages:STATE.chats[m.id].map(x=>({role:x.role==='user'?'user':'assistant',content:x.content})),
-        tools:[{type:'web_search_20250305',name:'web_search'}]})
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,system:`You are Doss, sales advisor for ${userName} at ${userOrg}. Meeting: ${m.title}. Attendees: ${ai}. ${bc}\nBe direct. No fluff.`,
+        messages:STATE.chats[m.id].map(x=>({role:x.role==='user'?'user':'assistant',content:x.content}))})
     });
     const data = await res.json();
     STATE.chats[m.id].push({role:'assistant',content:(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n')});
+    saveState();
   } catch(e) { STATE.chats[m.id].push({role:'assistant',content:'Error. Check API key.'}); }
   renderStrategyTab(document.getElementById('tabContent'),m);
 }
@@ -885,7 +915,7 @@ function renderDebriefTab(c,m,gen) {
   let h=`<div class="debrief-section"><label>Paste Call Transcript or Notes</label><textarea class="debrief-textarea" id="debriefTranscript" placeholder="Paste Fathom transcript or notes…">${esc(db.transcript)}</textarea></div><div class="brief-actions"><button class="gen-btn" id="runDebrief">Run Debrief</button></div>`;
   if(db.output) h+=`<div class="debrief-output"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><h4>Debrief Output</h4><button class="copy-btn" onclick="copyDebrief()">Copy</button></div><div class="brief-content" id="debriefContent">${db.output}</div></div>`;
   c.innerHTML=h;
-  document.getElementById('debriefTranscript').addEventListener('input',e=>{STATE.debriefs[m.id].transcript=e.target.value;});
+  document.getElementById('debriefTranscript').addEventListener('input',e=>{STATE.debriefs[m.id].transcript=e.target.value; saveState();});
   document.getElementById('runDebrief').addEventListener('click',()=>runDebrief(m));
 }
 
@@ -928,14 +958,16 @@ async function runDebrief(m) {
   const ai=(m.attendees||[]).map(a=>`${a.name||'?'} (${a.email||''})`).join(', ');
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:3000,
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2500,
         system: getDebriefSystemPrompt(m.title, ai, bc),
         messages:[{role:'user',content:`Transcript:\n\n${t}`}]})
     });
     const data = await res.json();
     STATE.debriefs[m.id].output=markdownToHtml((data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n'));
   } catch(e) { STATE.debriefs[m.id].output='<p style="color:var(--red)">Error.</p>'; }
-  delete STATE.generating[m.id]; renderDetail();
+  delete STATE.generating[m.id];
+  saveState();
+  renderDetail();
 }
 
 function copyDebrief() { const el=document.getElementById('debriefContent'); if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();} }
