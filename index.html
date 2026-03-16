@@ -157,15 +157,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 /* DEAL ROOM — outer chrome matches sidebar, inner messages are paper */
 .deal-room{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 
-/* Context bar — dark chrome */
-.context-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--dark-700);border-bottom:1px solid var(--dark-600);flex-shrink:0;}
+/* Context bar — mirrors detail header */
+.context-bar{display:flex;align-items:center;gap:12px;padding:12px 22px;background:var(--dark-700);border-bottom:1px solid var(--dark-600);flex-shrink:0;}
 .context-bar-icon{width:24px;height:24px;border-radius:5px;background:var(--dark-500);border:1px solid var(--dark-400);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .context-bar-text{flex:1;}
-.context-bar-title{font-size:11.5px;font-weight:600;color:var(--dk-text);margin-bottom:1px;}
-.context-bar-sub{font-size:10.5px;color:var(--dk-text-muted);}
-.context-bar-sub a{color:var(--accent);text-decoration:none;cursor:pointer;}
+.context-bar-title{font-size:15px;font-weight:700;letter-spacing:-0.3px;color:var(--dk-text);margin-bottom:2px;line-height:1.2;}
+.context-bar-sub{font-size:11px;color:var(--dk-text-secondary);}
+.context-bar-sub a{color:var(--accent);text-decoration:none;cursor:pointer;font-family:var(--mono);font-size:10.5px;}
 .context-bar-sub a:hover{text-decoration:underline;}
-.context-bar-gather{padding:5px 12px;border-radius:5px;border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-size:11.5px;font-weight:600;cursor:pointer;transition:all 0.2s;flex-shrink:0;box-shadow:0 1px 4px rgba(200,121,65,0.25);}
+.context-bar-badge{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:500;background:var(--accent-bg);border:1px solid var(--accent-border);padding:3px 9px;border-radius:5px;flex-shrink:0;}
+.context-bar-gather{padding:6px 14px;border-radius:5px;border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-size:11.5px;font-weight:600;cursor:pointer;transition:all 0.2s;flex-shrink:0;box-shadow:0 1px 4px rgba(200,121,65,0.25);}
 .context-bar-gather:hover{background:var(--accent-warm);}
 
 /* Chat messages — paper background with grid lines */
@@ -546,6 +547,7 @@ function renderDealRoomPane(m){
     const titles=transcripts.map(t=>t.title||'Call').join(' · ');
     ctxTitle=`${count} prior call${count!==1?'s':''} in context`;
     ctxSub=`${esc(titles.slice(0,60))}${titles.length>60?'…':''} · Searched last 6 months · <a onclick="clearTranscripts('${m.id}')">Clear</a> · <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh</a>`;
+    ctxRight=`<div class="context-bar-badge">${count} call${count!==1?'s':''}</div>`;
   }else if(Array.isArray(transcripts)&&transcripts.length===0){
     ctxTitle='No prior recordings found';
     ctxSub=`Nothing in the last 6 months for this account. <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Try again</a>`;
@@ -589,7 +591,7 @@ function renderDealRoomPane(m){
             <div class="email-card">
               <div class="email-card-header">
                 <span class="email-card-lbl">Follow-up Email</span>
-                <button class="email-card-copy" onclick="copyToClipboard(${JSON.stringify(emailText)})">Copy</button>
+                <button class="email-card-copy copy-trigger" data-text="${esc(emailText)}">Copy</button>
               </div>
               <div class="email-card-body">${esc(emailText)}</div>
             </div>
@@ -600,7 +602,7 @@ function renderDealRoomPane(m){
         <div class="tc-avatar assistant">D</div>
         <div class="tc-bubble-wrap">
           <div class="tc-bubble">${markdownToHtml(msg.content)}</div>
-          <button class="tc-copy-btn" onclick="copyToClipboard(${JSON.stringify(msg.content)})">
+          <button class="tc-copy-btn copy-trigger" data-text="${esc(msg.content)}">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
             Copy
           </button>
@@ -633,7 +635,22 @@ function renderDealRoomPane(m){
   </div>`;
 
   const tcMsgs=document.getElementById('tcMsgs');
-  if(tcMsgs)tcMsgs.scrollTop=99999;
+  if(tcMsgs){
+    tcMsgs.scrollTop=99999;
+    tcMsgs.addEventListener('click',e=>{
+      const btn=e.target.closest('.copy-trigger');
+      if(!btn)return;
+      const text=btn.dataset.text||'';
+      navigator.clipboard.writeText(text).then(()=>{
+        const orig=btn.textContent;btn.textContent='Copied!';
+        setTimeout(()=>btn.textContent=orig,1500);
+      }).catch(()=>{
+        const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+        const orig=btn.textContent;btn.textContent='Copied!';
+        setTimeout(()=>btn.textContent=orig,1500);
+      });
+    });
+  }
 
   const tcInput=document.getElementById('tcInput');
   const tcSend=document.getElementById('tcSend');
