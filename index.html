@@ -21,7 +21,6 @@
   --dk-text:#ede8e0;--dk-text-secondary:#a89884;--dk-text-muted:#6b5e52;
   --mono:'JetBrains Mono',monospace;--sans:'DM Sans',-apple-system,sans-serif;--serif:'DM Serif Display',Georgia,serif;
   --radius:8px;--radius-lg:12px;
-  --shadow-lg:0 8px 28px rgba(10,8,6,0.35),0 2px 8px rgba(10,8,6,0.2);
   --shadow-glow:0 0 0 1px rgba(200,121,65,0.18),0 2px 14px rgba(200,121,65,0.12);
   --paper-shadow:0 1px 2px rgba(44,37,32,0.06),0 4px 16px rgba(44,37,32,0.10),0 12px 40px rgba(44,37,32,0.08);
 }
@@ -120,15 +119,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .gen-btn:disabled{background:var(--dark-400);box-shadow:none;cursor:not-allowed;color:var(--dk-text-muted);}
 .gen-btn.secondary{background:var(--dark-600);color:var(--dk-text-secondary);border:1px solid var(--dark-500);box-shadow:none;}
 .gen-btn.secondary:hover{background:var(--dark-500);color:var(--dk-text);}
-.gen-btn.ghost{background:transparent;color:var(--dk-text-muted);border:1px solid var(--dark-500);box-shadow:none;padding:5px 12px;font-size:11.5px;}
-.gen-btn.ghost:hover{background:var(--dark-600);color:var(--dk-text);}
 
 /* PANES */
 .panes-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;}
 .tab-pane{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;opacity:0;pointer-events:none;transition:opacity 0.18s;}
 .tab-pane.active{opacity:1;pointer-events:all;}
 
-/* BRIEF LAYOUT */
+/* BRIEF */
 .brief-layout{flex:1;display:flex;overflow:hidden;}
 .brief-toc-col{width:168px;min-width:168px;overflow-y:auto;padding:18px 10px 18px 14px;border-right:1px solid var(--dark-600);display:flex;flex-direction:column;gap:1px;background:var(--dark-800);}
 .brief-toc-col::-webkit-scrollbar{width:3px;}
@@ -147,8 +144,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .brief-paper-col::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
 .search-status{font-family:var(--mono);font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:9px;padding:0 0 14px;min-height:34px;transition:opacity 0.5s;}
 .search-status.faded{opacity:0.3;}
-
-/* PAPER */
 .brief-paper{background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid rgba(200,121,65,0.25);border-radius:2px;box-shadow:var(--paper-shadow);padding:40px 48px 40px 52px;position:relative;}
 .brief-paper::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(transparent,transparent 27px,rgba(181,112,58,0.04) 27px,rgba(181,112,58,0.04) 28px);pointer-events:none;border-radius:2px;}
 .brief-paper h1{font-family:var(--serif);font-size:22px;font-weight:400;color:#1a1612;letter-spacing:-0.2px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--paper-border);line-height:1.25;}
@@ -174,8 +169,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .followup-pane{flex:1;overflow-y:auto;padding:20px 28px 48px;display:flex;flex-direction:column;gap:0;}
 .followup-pane::-webkit-scrollbar{width:4px;}
 .followup-pane::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
-
-/* Context bar */
 .context-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid rgba(200,121,65,0.25);border-radius:2px;margin-bottom:16px;box-shadow:0 1px 4px rgba(44,37,32,0.06);}
 .context-bar-icon{width:28px;height:28px;border-radius:6px;background:var(--accent-bg);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .context-bar-text{flex:1;}
@@ -183,9 +176,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .context-bar-sub{font-size:11px;color:var(--text-muted);}
 .context-bar-sub a{color:var(--accent);text-decoration:none;cursor:pointer;}
 .context-bar-sub a:hover{text-decoration:underline;}
-
-/* Transcript chat */
-.transcript-chat{background:var(--paper);border:1px solid var(--paper-border);border-radius:2px;box-shadow:0 1px 4px rgba(44,37,32,0.06);display:flex;flex-direction:column;overflow:hidden;margin-bottom:16px;min-height:280px;max-height:420px;}
+.transcript-chat{background:var(--paper);border:1px solid var(--paper-border);border-radius:2px;box-shadow:0 1px 4px rgba(44,37,32,0.06);display:flex;flex-direction:column;overflow:hidden;margin-bottom:16px;min-height:280px;max-height:460px;}
 .transcript-chat-header{padding:9px 16px;border-bottom:1px solid var(--paper-border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);background:rgba(200,121,65,0.04);display:flex;align-items:center;justify-content:space-between;}
 .transcript-chat-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
 .transcript-chat-msgs::-webkit-scrollbar{width:3px;}
@@ -195,11 +186,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .tc-avatar.user{background:var(--cream-200);color:var(--text-secondary);}
 .tc-avatar.assistant{background:var(--accent);color:#fff;}
 .tc-bubble{flex:1;font-size:13px;line-height:1.65;color:var(--text);}
-.tc-bubble strong{font-weight:600;}
 .tc-bubble p{margin-bottom:6px;}
 .tc-bubble p:last-child{margin-bottom:0;}
 .tc-bubble ul{margin-left:16px;margin-bottom:6px;}
 .tc-bubble li{margin-bottom:3px;}
+.tc-bubble strong{font-weight:600;}
 .tc-input-row{padding:10px 12px;border-top:1px solid var(--paper-border);display:flex;gap:8px;background:rgba(200,121,65,0.02);}
 .tc-input{flex:1;border:1px solid var(--paper-border);border-radius:6px;padding:8px 12px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--paper);outline:none;resize:none;min-height:36px;max-height:100px;transition:border-color 0.15s;line-height:1.5;}
 .tc-input:focus{border-color:var(--accent-border);}
@@ -207,26 +198,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .tc-send{padding:8px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;flex-shrink:0;}
 .tc-send:hover{background:var(--accent-warm);}
 .tc-send:disabled{background:var(--cream-300);cursor:not-allowed;}
-
-/* Divider */
 .section-divider{display:flex;align-items:center;gap:10px;margin:4px 0 16px;color:var(--text-muted);font-size:10.5px;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;}
 .section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:var(--paper-border);}
-
-/* Paste fallback */
 .debrief-lbl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:7px;}
 .debrief-textarea{width:100%;padding:12px 14px;border:1px solid var(--paper-border);border-radius:var(--radius);font-family:var(--sans);font-size:13px;color:var(--text);background:var(--paper);outline:none;resize:vertical;min-height:120px;line-height:1.6;transition:border-color 0.15s;box-shadow:inset 0 1px 3px rgba(44,37,32,0.04);}
 .debrief-textarea:focus{border-color:var(--accent-border);}
 .debrief-textarea::placeholder{color:var(--text-muted);}
-
-/* Email output */
 .email-block{background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid rgba(200,121,65,0.25);border-radius:2px;box-shadow:var(--paper-shadow);overflow:hidden;margin-top:12px;}
 .email-header{padding:10px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--paper-border);background:rgba(200,121,65,0.04);}
 .email-header-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);}
 .copy-btn{padding:4px 11px;border-radius:5px;border:1px solid var(--paper-border);background:transparent;font-family:var(--sans);font-size:11px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
 .copy-btn:hover{background:var(--cream-150);color:var(--text);}
 .email-body{padding:22px 24px;font-size:13.5px;line-height:1.75;color:var(--text);white-space:pre-wrap;}
-
-/* SPINNER */
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.25);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
 .spinner.dark{border-color:var(--dark-400);border-top-color:var(--accent);}
 .spinner.light{border-color:rgba(200,121,65,0.2);border-top-color:var(--accent);}
@@ -272,14 +255,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <span class="api-lbl">FAT</span>
         <input type="password" class="api-input" id="fathomKey" placeholder="Fathom API key…" autocomplete="off">
       </div>
-      <div class="settings-hint" style="margin-top:4px;">Enables prior call context in the Follow-up tab.</div>
       <label>Fathom Proxy URL</label>
       <div class="api-bar" id="proxyBar">
         <div class="api-dot" id="proxyDot"></div>
         <span class="api-lbl">URL</span>
-        <input type="text" class="api-input" id="proxyUrl" placeholder="https://fathom-proxy.yourname.workers.dev" autocomplete="off">
+        <input type="text" class="api-input" id="proxyUrl" placeholder="https://…workers.dev" autocomplete="off">
       </div>
-      <div class="settings-hint" style="margin-top:4px;">Cloudflare Worker proxy URL. <a href="https://developers.cloudflare.com/workers/get-started/guide/" target="_blank" style="color:var(--accent);text-decoration:none;">Setup guide ↗</a></div>
+      <div class="settings-hint" style="margin-top:4px;">Cloudflare Worker proxy for Fathom API.</div>
       <label>Brief Template <span class="save-indicator" id="briefSaved">Saved ✓</span></label>
       <textarea class="settings-textarea" id="briefTemplate" placeholder="Leave blank for the full default dossier."></textarea>
       <div class="settings-hint">Leave blank for the full default dossier.</div>
@@ -311,11 +293,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 <script>
 const GOOGLE_CLIENT_ID='545043452179-k57aahlhjd5o8u2h8ehpsoftvi1ian8r.apps.googleusercontent.com';
 const CALENDAR_SCOPES='https://www.googleapis.com/auth/calendar.readonly';
+
 const STATE={
   accessToken:null,orgDomain:'',dayCache:{},
   activeMeetingId:null,activeTab:'brief',currentDate:new Date(),
   timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
-  briefs:{},followups:{},transcripts:{},tcChats:{},
+  briefs:{},followups:{},
+  transcripts:{}, // session-only, never persisted
+  tcChats:{},
   generating:{},gatheringContext:{},
   model:'claude-sonnet-4-20250514',
   briefTemplate:localStorage.getItem('doss_template')||'',
@@ -325,19 +310,18 @@ function saveState(){
   try{
     localStorage.setItem('doss_briefs',JSON.stringify(STATE.briefs));
     localStorage.setItem('doss_followups',JSON.stringify(STATE.followups));
-    // Transcripts are NOT persisted — too large, re-fetched each session via Gather Context
-    // Only persist chat history (text only, small)
     localStorage.setItem('doss_tcchats',JSON.stringify(STATE.tcChats));
   }catch(e){console.warn('State save failed:',e);}
 }
+
 function loadState(){
   try{
-    const b=localStorage.getItem('doss_briefs'),f=localStorage.getItem('doss_followups');
+    const b=localStorage.getItem('doss_briefs');
+    const f=localStorage.getItem('doss_followups');
     const c=localStorage.getItem('doss_tcchats');
     if(b)STATE.briefs=JSON.parse(b);
     if(f)STATE.followups=JSON.parse(f);
     if(c)STATE.tcChats=JSON.parse(c);
-    // Transcripts always start empty — user hits Gather Context to reload
   }catch(e){console.warn('State load failed:',e);}
 }
 loadState();
@@ -354,9 +338,19 @@ function initGoogleAuth(){
   if(typeof google==='undefined'||!google.accounts){setTimeout(initGoogleAuth,200);return;}
   tokenClient=google.accounts.oauth2.initTokenClient({
     client_id:GOOGLE_CLIENT_ID,scope:CALENDAR_SCOPES,
-    callback:(r)=>{if(r.access_token){const expiry=Date.now()+(55*60*1000);localStorage.setItem('doss_gtoken',JSON.stringify({token:r.access_token,expiry}));setGoogleSignedIn(r.access_token);loadCurrentDay();backgroundLoadWeek();}},
+    callback:(r)=>{
+      if(r.access_token){
+        const expiry=Date.now()+(55*60*1000);
+        localStorage.setItem('doss_gtoken',JSON.stringify({token:r.access_token,expiry}));
+        setGoogleSignedIn(r.access_token);
+        loadCurrentDay();backgroundLoadWeek();
+      }
+    },
   });
-  try{const s=JSON.parse(localStorage.getItem('doss_gtoken')||'null');if(s&&s.token&&s.expiry>Date.now()){setGoogleSignedIn(s.token);loadCurrentDay();backgroundLoadWeek();return;}}catch(e){}
+  try{
+    const s=JSON.parse(localStorage.getItem('doss_gtoken')||'null');
+    if(s&&s.token&&s.expiry>Date.now()){setGoogleSignedIn(s.token);loadCurrentDay();backgroundLoadWeek();return;}
+  }catch(e){}
   setTimeout(()=>{if(!STATE.accessToken&&tokenClient)tokenClient.requestAccessToken({prompt:''});},500);
 }
 function handleGoogleAuth(){
@@ -375,18 +369,35 @@ async function fetchCalendarEvents(date){
     const res=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,{headers:{Authorization:`Bearer ${STATE.accessToken}`}});
     if(res.status===401){STATE.accessToken=null;localStorage.removeItem('doss_gtoken');return[];}
     const data=await res.json();
-    return(data.items||[]).map(ev=>({id:ev.id,title:ev.summary||'Untitled',startTime:ev.start?.dateTime||ev.start?.date,endTime:ev.end?.dateTime||ev.end?.date,attendees:(ev.attendees||[]).map(a=>({name:a.displayName||a.email,email:a.email})),location:ev.location||null}));
+    return(data.items||[]).map(ev=>({
+      id:ev.id,
+      title:ev.summary||'Untitled',
+      startTime:ev.start?.dateTime||ev.start?.date,
+      endTime:ev.end?.dateTime||ev.end?.date,
+      attendees:(ev.attendees||[]).map(a=>({name:a.displayName||a.email,email:a.email})),
+      location:ev.location||null
+    }));
   }catch(err){return[];}
 }
+
 function emailDomain(e){if(!e||!e.includes('@'))return'';return e.split('@')[1].toLowerCase();}
+
 function detectOrgDomain(events){
-  const c={};events.forEach(ev=>{(ev.attendees||[]).forEach(a=>{const d=emailDomain(a.email);if(d&&!d.includes('gmail.com')&&!d.includes('resource.calendar.google.com'))c[d]=(c[d]||0)+1;});});
-  let best='',max=0;Object.entries(c).forEach(([d,n])=>{if(n>max){best=d;max=n;}});return best;
+  const c={};
+  events.forEach(ev=>{(ev.attendees||[]).forEach(a=>{
+    const d=emailDomain(a.email);
+    if(d&&!d.includes('gmail.com')&&!d.includes('resource.calendar.google.com'))c[d]=(c[d]||0)+1;
+  });});
+  let best='',max=0;
+  Object.entries(c).forEach(([d,n])=>{if(n>max){best=d;max=n;}});
+  return best;
 }
+
 function isExternal(m,org){
   const att=m.attendees||[];if(att.length<=1)return false;if(!org)return true;
   return att.some(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
 }
+
 async function loadDay(date){
   const key=dateKey(date);if(STATE.dayCache[key])return STATE.dayCache[key];
   const all=await fetchCalendarEvents(date);
@@ -395,15 +406,19 @@ async function loadDay(date){
   ext.sort((a,b)=>new Date(a.startTime)-new Date(b.startTime));
   STATE.dayCache[key]=ext;return ext;
 }
+
 async function loadCurrentDay(){
   document.getElementById('meetingList').innerHTML='<div style="padding:18px;text-align:center;color:var(--dk-text-muted);font-size:13px;"><div class="spinner dark" style="margin:0 auto 8px;"></div>Loading…</div>';
   await loadDay(STATE.currentDate);renderMeetingList();updateDateBar();
 }
+
 async function backgroundLoadWeek(){
-  const dow=STATE.currentDate.getDay(),monday=new Date(STATE.currentDate);monday.setDate(STATE.currentDate.getDate()-(dow===0?6:dow-1));
+  const dow=STATE.currentDate.getDay(),monday=new Date(STATE.currentDate);
+  monday.setDate(STATE.currentDate.getDate()-(dow===0?6:dow-1));
   const days=Array.from({length:5},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);return d;}).filter(d=>!STATE.dayCache[dateKey(d)]);
   await Promise.all(days.map(async d=>{await loadDay(d);if(dateKey(STATE.currentDate)===dateKey(d))renderMeetingList();}));
 }
+
 function getCurrentMeetings(){return STATE.dayCache[dateKey(STATE.currentDate)]||[];}
 function dateKey(date){return new Intl.DateTimeFormat('en-CA',{timeZone:STATE.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(date);}
 
@@ -425,7 +440,11 @@ function renderMeetingList(){
     const isActive=m.id===STATE.activeMeetingId,hasBrief=!!STATE.briefs[m.id],isGen=!!STATE.generating[m.id];
     const sc=isGen?'status-generating':hasBrief?'status-ready':'status-none';
     const ac=(m.attendees||[]).length;
-    return`<div class="meeting-card ${isActive?'active':''}" data-id="${m.id}"><div class="meeting-card-top"><span class="meeting-time">${formatTimeRange(m.startTime,m.endTime)} ${tz}</span><span class="meeting-status ${sc}"></span></div><div class="meeting-name">${esc(m.title)}</div><div class="meeting-meta">${ac} attendee${ac!==1?'s':''}</div></div>`;
+    return`<div class="meeting-card ${isActive?'active':''}" data-id="${m.id}">
+      <div class="meeting-card-top"><span class="meeting-time">${formatTimeRange(m.startTime,m.endTime)} ${tz}</span><span class="meeting-status ${sc}"></span></div>
+      <div class="meeting-name">${esc(m.title)}</div>
+      <div class="meeting-meta">${ac} attendee${ac!==1?'s':''}</div>
+    </div>`;
   }).join('');
   list.querySelectorAll('.meeting-card').forEach(card=>{card.addEventListener('click',()=>{STATE.activeMeetingId=card.dataset.id;STATE.activeTab='brief';renderMeetingList();renderDetail();});});
 }
@@ -437,6 +456,7 @@ function renderDetail(){
   if(!meeting){main.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier or write a follow-up.</p></div>`;return;}
   const tz=getTzAbbr(),attendeeStr=(meeting.attendees||[]).map(a=>a.name||a.email).join(', ');
   const hasBrief=!!STATE.briefs[meeting.id],hasFollowup=!!STATE.followups[meeting.id]?.email;
+
   main.innerHTML=`
     <div class="detail-header">
       <div class="detail-header-top"><div class="detail-title">${esc(meeting.title)}</div><div class="detail-time">${formatTimeRange(meeting.startTime,meeting.endTime)} ${tz}</div></div>
@@ -454,6 +474,7 @@ function renderDetail(){
       <div class="tab-pane active" data-tab="brief" id="briefPane"></div>
       <div class="tab-pane" data-tab="debrief" id="debriefPane"></div>
     </div>`;
+
   positionPillSlider('brief');
   document.querySelectorAll('.pill-opt').forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -464,7 +485,10 @@ function renderDetail(){
       positionPillSlider(tab);updateActionBtns(meeting);
     });
   });
-  renderBriefPane(meeting);renderDebriefPane(meeting);updateActionBtns(meeting);
+
+  renderBriefPane(meeting);
+  renderDebriefPane(meeting);
+  updateActionBtns(meeting);
 }
 
 function positionPillSlider(tab){
@@ -523,7 +547,7 @@ function renderDebriefPane(m){
   const fu=STATE.followups[m.id];
   const fathomKey=localStorage.getItem('doss_fathomkey')||'';
   const transcripts=STATE.transcripts[m.id];
-  const hasTranscripts=transcripts&&transcripts.length>0;
+  const hasTranscripts=Array.isArray(transcripts)&&transcripts.length>0;
   const isGathering=!!STATE.gatheringContext[m.id];
   const isGenFollowup=STATE.generating[m.id]==='followup';
   const isChatting=STATE.generating[m.id]==='chat';
@@ -533,7 +557,8 @@ function renderDebriefPane(m){
   if(!fathomKey){
     contextBarHtml=`<div class="context-bar">
       <div class="context-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg></div>
-      <div class="context-bar-text"><div class="context-bar-title">No Fathom key set</div><div class="context-bar-sub">Add your Fathom API key in <a onclick="document.getElementById('settingsPanel').classList.add('open');document.getElementById('settingsBtn').classList.add('active');">Settings</a> to pull prior call transcripts.</div></div>
+      <div class="context-bar-text"><div class="context-bar-title">No Fathom key set</div>
+      <div class="context-bar-sub">Add your Fathom API key in <a onclick="document.getElementById('settingsPanel').classList.add('open');document.getElementById('settingsBtn').classList.add('active');">Settings</a> to pull prior call transcripts.</div></div>
     </div>`;
   }else if(isGathering){
     contextBarHtml=`<div class="context-bar">
@@ -542,20 +567,23 @@ function renderDebriefPane(m){
     </div>`;
   }else if(hasTranscripts){
     const count=transcripts.length;
-    const titles=transcripts.map(t=>t.title||(t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'Call')).join(', ');
+    const titles=transcripts.map(t=>t.title||'Call').join(' · ');
     contextBarHtml=`<div class="context-bar">
       <div class="context-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></div>
-      <div class="context-bar-text"><div class="context-bar-title">${count} prior call${count!==1?'s':''} loaded</div><div class="context-bar-sub">${esc(titles)} · <a onclick="clearTranscripts('${m.id}')">Clear</a> · <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh</a></div></div>
+      <div class="context-bar-text"><div class="context-bar-title">${count} prior call${count!==1?'s':''} loaded</div>
+      <div class="context-bar-sub">${esc(titles.slice(0,80))}${titles.length>80?'…':''} · <a onclick="clearTranscripts('${m.id}')">Clear</a> · <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh</a></div></div>
     </div>`;
-  }else if(transcripts&&transcripts.length===0){
+  }else if(Array.isArray(transcripts)&&transcripts.length===0){
     contextBarHtml=`<div class="context-bar">
       <div class="context-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--dk-text-muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg></div>
-      <div class="context-bar-text"><div class="context-bar-title">No prior recordings found</div><div class="context-bar-sub">No Fathom calls found with this account's domain. <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Try again</a></div></div>
+      <div class="context-bar-text"><div class="context-bar-title">No prior recordings found</div>
+      <div class="context-bar-sub">No Fathom calls matched this account's domain. <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Try again</a></div></div>
     </div>`;
   }else{
     contextBarHtml=`<div class="context-bar">
       <div class="context-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-      <div class="context-bar-text"><div class="context-bar-title">Pull prior call context</div><div class="context-bar-sub">Search Fathom for every recorded call with this account.</div></div>
+      <div class="context-bar-text"><div class="context-bar-title">Pull prior call context</div>
+      <div class="context-bar-sub">Search Fathom for every recorded call with this account.</div></div>
       <button class="gen-btn" style="flex-shrink:0;font-size:12px;padding:6px 14px;" onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Gather Context</button>
     </div>`;
   }
@@ -565,47 +593,57 @@ function renderDebriefPane(m){
   if(hasTranscripts){
     const msgs=STATE.tcChats[m.id]||[];
     const msgsHtml=msgs.length===0
-      ?`<div style="padding:20px 16px;text-align:center;color:var(--text-muted);font-size:12.5px;">Ask anything about the prior calls — what was quoted, objections, their tech stack, next steps discussed…</div>`
-      :msgs.map(msg=>`<div class="tc-msg"><div class="tc-avatar ${msg.role}">${msg.role==='user'?'W':'D'}</div><div class="tc-bubble">${msg.role==='assistant'?markdownToHtml(msg.content):esc(msg.content)}</div></div>`).join('');
-    chatHtml=`
-      <div class="transcript-chat">
-        <div class="transcript-chat-header"><span>Ask about prior calls</span><span style="font-size:10px;color:var(--text-muted);font-weight:400;">${transcripts.length} call${transcripts.length!==1?'s':''} in context</span></div>
-        <div class="transcript-chat-msgs" id="tcMsgs">${msgsHtml}${isChatting?'<div class="tc-msg"><div class="tc-avatar assistant">D</div><div class="tc-bubble" style="color:var(--text-muted);font-style:italic;">Thinking…</div></div>':''}</div>
-        <div class="tc-input-row">
-          <textarea class="tc-input" id="tcInput" placeholder="What did I quote them? What was their biggest pain?" rows="1"></textarea>
-          <button class="tc-send" id="tcSend" ${isChatting?'disabled':''}>Ask</button>
-        </div>
-      </div>`;
+      ?`<div style="padding:20px 16px;text-align:center;color:var(--text-muted);font-size:12.5px;">Ask anything about prior calls — what was quoted, objections, their tech stack, next steps discussed…</div>`
+      :msgs.map(msg=>`<div class="tc-msg">
+          <div class="tc-avatar ${msg.role}">${msg.role==='user'?'W':'D'}</div>
+          <div class="tc-bubble">${msg.role==='assistant'?markdownToHtml(msg.content):esc(msg.content)}</div>
+        </div>`).join('');
+    const thinkingHtml=isChatting?`<div class="tc-msg"><div class="tc-avatar assistant">D</div><div class="tc-bubble" style="color:var(--text-muted);font-style:italic;">Thinking…</div></div>`:'';
+    chatHtml=`<div class="transcript-chat">
+      <div class="transcript-chat-header">
+        <span>Ask about prior calls</span>
+        <span style="font-size:10px;color:var(--text-muted);font-weight:400;">${transcripts.length} call${transcripts.length!==1?'s':''} in context</span>
+      </div>
+      <div class="transcript-chat-msgs" id="tcMsgs">${msgsHtml}${thinkingHtml}</div>
+      <div class="tc-input-row">
+        <textarea class="tc-input" id="tcInput" placeholder="What did I quote them? What was their biggest pain?" rows="1"></textarea>
+        <button class="tc-send" id="tcSend" ${isChatting?'disabled':''}>Ask</button>
+      </div>
+    </div>`;
   }
 
   // Email section
   const emailHtml=fu.email
-    ?`<div class="email-block"><div class="email-header"><span class="email-header-lbl">Follow-up Email</span><button class="copy-btn" id="copyEmailBtn">Copy</button></div><div class="email-body">${esc(fu.email)}</div></div>`:'';
+    ?`<div class="email-block">
+        <div class="email-header"><span class="email-header-lbl">Follow-up Email</span><button class="copy-btn" id="copyEmailBtn">Copy</button></div>
+        <div class="email-body">${esc(fu.email)}</div>
+      </div>`:'';
 
   let emailSection='';
   if(hasTranscripts){
-    emailSection=`
-      <div class="section-divider">Follow-up Email</div>
+    emailSection=`<div class="section-divider">Follow-up Email</div>
       ${!isGenFollowup
         ?`<button class="gen-btn" id="runDebriefBtn">Write Follow-up Email</button>`
         :`<button class="gen-btn" disabled><span class="spinner"></span> Writing…</button>`}
       ${emailHtml}`;
   }else{
-    emailSection=`
-      <div class="debrief-lbl">Paste transcript</div>
+    emailSection=`<div class="debrief-lbl">Paste transcript</div>
       <textarea class="debrief-textarea" id="debriefTranscript" placeholder="Paste your Fathom transcript…">${esc(fu.transcript)}</textarea>
-      ${!isGenFollowup
-        ?`<div style="margin-top:8px;"><button class="gen-btn" id="runDebriefBtn"${!fu.transcript.trim()?' disabled':''}>Write Follow-up Email</button></div>`
-        :`<div style="margin-top:8px;"><button class="gen-btn" disabled><span class="spinner"></span> Writing…</button></div>`}
+      <div style="margin-top:8px;">
+        ${!isGenFollowup
+          ?`<button class="gen-btn" id="runDebriefBtn"${!fu.transcript.trim()?' disabled':''}>Write Follow-up Email</button>`
+          :`<button class="gen-btn" disabled><span class="spinner"></span> Writing…</button>`}
+      </div>
       ${emailHtml}`;
   }
 
   pane.innerHTML=`<div class="followup-pane">${contextBarHtml}${chatHtml}${emailSection}</div>`;
 
   // Scroll chat to bottom
-  const tcMsgs=document.getElementById('tcMsgs');if(tcMsgs)tcMsgs.scrollTop=99999;
+  const tcMsgs=document.getElementById('tcMsgs');
+  if(tcMsgs)tcMsgs.scrollTop=99999;
 
-  // Wire up chat
+  // Wire chat
   const tcInput=document.getElementById('tcInput');
   const tcSend=document.getElementById('tcSend');
   if(tcInput&&tcSend){
@@ -614,7 +652,7 @@ function renderDebriefPane(m){
     tcSend.addEventListener('click',()=>sendTranscriptChat(m));
   }
 
-  // Wire up paste fallback
+  // Wire paste fallback
   const ta=document.getElementById('debriefTranscript');
   if(ta)ta.addEventListener('input',e=>{fu.transcript=e.target.value;saveState();const btn=document.getElementById('runDebriefBtn');if(btn)btn.disabled=!e.target.value.trim();});
 
@@ -623,106 +661,108 @@ function renderDebriefPane(m){
 }
 
 // ── GATHER FATHOM CONTEXT ──
+function domainMatch(email,domains){
+  const d=emailDomain(email);
+  return d&&domains.some(td=>d===td||d.endsWith('.'+td));
+}
+
 async function gatherFathomContext(m){
   if(!m)return;
   const fathomKey=localStorage.getItem('doss_fathomkey')||'';
+  const proxyUrl=(localStorage.getItem('doss_proxyurl')||'').replace(/\/$/,'');
   if(!fathomKey){alert('Add your Fathom API key in Settings first.');return;}
+  if(!proxyUrl){alert('Add your Fathom Proxy URL in Settings first.');return;}
+  if(!STATE.orgDomain){alert('Calendar still loading — try again in a moment.');return;}
 
-  // Get external domains
-  const externalDomains=[...new Set(
-    (m.attendees||[])
-      .map(a=>emailDomain(a.email))
-      .filter(d=>d&&d!==STATE.orgDomain&&!d.includes('resource.calendar.google.com'))
-  )];
+  const externalAttendees=(m.attendees||[]).filter(a=>{
+    const d=emailDomain(a.email);
+    return d&&d!==STATE.orgDomain&&!d.includes('resource.calendar.google.com')&&!d.includes('gmail.com');
+  });
+  const externalDomains=[...new Set(externalAttendees.map(a=>emailDomain(a.email)))];
+
   if(!externalDomains.length){alert('No external attendees found for this meeting.');return;}
 
+  console.log('Doss: gathering context for domains:', externalDomains.join(', '));
+  delete STATE.transcripts[m.id];
   STATE.gatheringContext[m.id]=true;
   renderDebriefPane(m);
 
   try{
-    const proxyUrl=(localStorage.getItem('doss_proxyurl')||'').replace(/\/$/,'');
-    if(!proxyUrl){
-      delete STATE.gatheringContext[m.id];
-      alert('Add your Fathom Proxy URL in Settings. See the setup guide to deploy the Cloudflare Worker in ~2 minutes.');
-      return;
-    }
+    // Paginate through all Fathom meetings
+    let allMeetings=[],cursor=null,pages=0;
+    do{
+      const params=new URLSearchParams({include_transcript:'true',per_page:'50'});
+      if(cursor)params.set('cursor',cursor);
+      const res=await fetch(`${proxyUrl}/meetings?${params}`,{
+        headers:{'X-Fathom-Key':fathomKey,'Content-Type':'application/json'}
+      });
+      if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.message||`Fathom API ${res.status}`);}
+      const data=await res.json();
+      const items=data.items||data.data||data.meetings||[];
+      allMeetings=allMeetings.concat(items);
+      cursor=data.next_cursor||data.meta?.next_cursor||null;
+      pages++;
+      if(pages>=10||items.length<50)cursor=null;
+    }while(cursor);
 
-    // Get all external attendee emails for this meeting
-    const externalEmails=(m.attendees||[])
-      .filter(a=>{const d=emailDomain(a.email);return d&&d!==STATE.orgDomain&&!d.includes('resource.calendar.google.com');})
-      .map(a=>a.email).filter(Boolean);
+    console.log(`Doss: fetched ${allMeetings.length} total Fathom meetings across ${pages} page(s)`);
 
-    // Pass emails directly to Fathom as filter params
-    const params=new URLSearchParams({include_transcript:'true',per_page:'50'});
-    externalEmails.forEach(e=>params.append('calendar_invitees[]',e));
-
-    const res=await fetch(`${proxyUrl}/meetings?${params}`,{
-      headers:{'X-Fathom-Key':fathomKey,'Content-Type':'application/json'}
-    });
-
-    if(!res.ok){
-      const err=await res.json().catch(()=>({}));
-      throw new Error(err.message||`Fathom API error ${res.status}`);
-    }
-
-    const data=await res.json();
-    console.log('Fathom raw response:', JSON.stringify(data).slice(0,2000));
-
-    // Fetch all meetings then filter client-side using transcript speaker emails
-    // This is more reliable than Fathom's server-side filter
-    const allParams=new URLSearchParams({include_transcript:'true',per_page:'50'});
-    const allRes=await fetch(`${proxyUrl}/meetings?${allParams}`,{
-      headers:{'X-Fathom-Key':fathomKey,'Content-Type':'application/json'}
-    });
-    const allData=await allRes.json();
-    const allMeetings=allData.items||allData.data||allData.meetings||allData.results||(Array.isArray(allData)?allData:[]);
-
-    // Filter by checking transcript speaker emails against prospect domain
-    // matched_calendar_invitee_email on each utterance is the most reliable signal
+    // Filter: must have a speaker from the external domain in the transcript
     const matched=allMeetings.filter(fm=>{
-      const transcript=fm.transcript||[];
-      if(!Array.isArray(transcript)||transcript.length===0)return false;
-      return transcript.some(line=>{
-        const speakerEmail=(line.speaker?.matched_calendar_invitee_email||'').toLowerCase();
-        return externalDomains.some(d=>speakerEmail.includes(d));
+      const transcript=Array.isArray(fm.transcript)?fm.transcript:[];
+      // Primary: verified speaker email in transcript
+      const speakerMatch=transcript.some(line=>{
+        const e=(line.speaker?.matched_calendar_invitee_email||'').toLowerCase();
+        return e&&domainMatch(e,externalDomains);
+      });
+      if(speakerMatch)return true;
+      // Fallback: meeting-level attendee fields
+      const people=[...(fm.calendar_invitees||[]),...(fm.attendees||[]),...(fm.participants||[])];
+      return people.some(p=>{
+        const e=(typeof p==='string'?p:(p.email||'')).toLowerCase();
+        return e&&domainMatch(e,externalDomains);
       });
     });
-    console.log(`Fathom: ${allMeetings.length} total, ${matched.length} matched domain(s):`, externalDomains);
 
-    // Sort by date descending
-    matched.sort((a,b)=>new Date(b.created_at||b.date||0)-new Date(a.created_at||a.date||0));
+    matched.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+    console.log(`Doss: ${matched.length} calls matched for ${externalDomains.join(', ')}`);
 
+    // Convert transcript arrays to readable grouped text
     STATE.transcripts[m.id]=matched.map(fm=>{
-      // Transcript comes as array of {speaker, text, timestamp} objects
-      const rawTranscript=fm.transcript||fm.transcript_text||'';
-      const transcriptText=Array.isArray(rawTranscript)
-        ?rawTranscript.map(line=>`${line.speaker?.display_name||'Speaker'}: ${line.text}`).join('\n')
-        :rawTranscript;
+      const lines=Array.isArray(fm.transcript)?fm.transcript:[];
+      const grouped=[];
+      lines.forEach(line=>{
+        const speaker=line.speaker?.display_name||'Unknown';
+        const last=grouped[grouped.length-1];
+        if(last&&last.speaker===speaker){last.text+=' '+(line.text||'');}
+        else{grouped.push({speaker,text:line.text||''});}
+      });
+      const transcriptText=grouped.filter(l=>l.text.trim()).map(l=>`${l.speaker}: ${l.text}`).join('\n');
       return{
         title:fm.title||fm.meeting_title||'Untitled Call',
         date:fm.created_at||fm.date||null,
         transcript:transcriptText,
-        id:fm.id,
+        id:fm.recording_id||fm.id,
       };
     });
 
-    saveState();
-    delete STATE.gatheringContext[m.id];
-    renderDebriefPane(m);
+    console.log('Doss: transcript sizes:',STATE.transcripts[m.id].map(t=>`${t.title}: ${t.transcript.length}c`).join(', '));
+
   }catch(e){
-    console.error('Fathom fetch error:',e);
+    console.error('Doss: Fathom error:',e);
     alert(`Fathom error: ${e.message}`);
     STATE.transcripts[m.id]=[];
-    delete STATE.gatheringContext[m.id];
-    renderDebriefPane(m);
   }
+
+  delete STATE.gatheringContext[m.id];
+  renderDebriefPane(m);
 }
 
-function clearTranscripts(meetingId){
-  delete STATE.transcripts[meetingId];
-  STATE.tcChats[meetingId]=[];
+function clearTranscripts(id){
+  delete STATE.transcripts[id];
+  STATE.tcChats[id]=[];
   saveState();
-  const m=getCurrentMeetings().find(x=>x.id===meetingId);
+  const m=getCurrentMeetings().find(x=>x.id===id);
   if(m)renderDebriefPane(m);
 }
 
@@ -738,42 +778,51 @@ async function sendTranscriptChat(m){
   STATE.generating[m.id]='chat';
   renderDebriefPane(m);
 
-  // Build transcript context — format with speaker names and timestamps
   const transcripts=STATE.transcripts[m.id]||[];
-  const transcriptContext=transcripts.map(t=>`=== ${t.title}${t.date?' ('+new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+')':''}  ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,24000);
+  const externalAttendees=(m.attendees||[]).filter(a=>{
+    const d=emailDomain(a.email);
+    return d&&d!==STATE.orgDomain&&!d.includes('resource.calendar.google.com');
+  });
+  const prospectNames=externalAttendees.map(a=>a.name||a.email).join(', ');
+  const prospectDomains=[...new Set(externalAttendees.map(a=>emailDomain(a.email)))].join(', ');
 
-  // Identify the prospect company from external attendees
-  const prospectDomain=externalDomains[0]||'';
-  const prospectAttendees=(m.attendees||[]).filter(a=>emailDomain(a.email)===prospectDomain).map(a=>a.name||a.email).join(', ');
+  const transcriptContext=transcripts.map(t=>{
+    const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    return`=== ${t.title}${date?' — '+date:''} ===\n${t.transcript}`;
+  }).join('\n\n---\n\n').slice(0,80000);
 
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:STATE.model,max_tokens:800,
-        system:`You are Doss, a deal intelligence advisor for Will Kraft, an Account Executive at Aleph.
+      body:JSON.stringify({model:STATE.model,max_tokens:1000,
+        system:`You are Doss, a deal intelligence advisor for Will Kraft — Account Executive at Aleph.
 ${ALEPH_CONTEXT}
 
-WILL'S IDENTITY: Will Kraft is the AE. In transcripts he may appear as "Will Kraft", "will.kraft@getaleph.com", or just "Will". Treat anything said by Will as coming from the user you're advising.
+WILL'S IDENTITY: Will Kraft is the AE. In transcripts he appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people (Kristen, Jeremy, Alex, etc.) are colleagues, not Will.
 
-CURRENT DEAL: ${m.title}
-Prospect contacts: ${prospectAttendees||'Unknown'}
-Prospect domain: ${prospectDomain}
+CURRENT MEETING: ${m.title}
+Prospect on today's invite: ${prospectNames||'Unknown'}
+Prospect domain(s): ${prospectDomains}
 
-YOUR JOB: You have full transcripts from every prior recorded call with this prospect. Answer Will's questions directly and specifically — quote what was actually said when relevant. You know Aleph's product cold. You understand deal dynamics. Be a sharp advisor, not a search engine.
+YOUR JOB:
+- Answer Will's questions directly from what was actually said in the transcripts
+- Quote exact words when relevant — don't paraphrase if the real quote is better
+- Cite which call something came from (title + date)
+- Synthesize across calls — spot patterns, track how the deal evolved
+- Connect what the prospect said to specific Aleph capabilities
+- Be sharp and direct. Will is walking into a meeting.
 
-If Will asks "what did I quote them" — find the pricing or numbers Will mentioned.
-If Will asks about pain — synthesize what the prospect actually said across all calls.
-If Will asks about next steps — pull from what was committed to.
-Always cite which call something came from.
-
-PRIOR CALL TRANSCRIPTS:
+PRIOR CALL TRANSCRIPTS (${transcripts.length} calls, newest first):
 ${transcriptContext}`,
         messages:STATE.tcChats[m.id].map(x=>({role:x.role,content:x.content}))})});
     const data=await res.json();
     const reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
     STATE.tcChats[m.id].push({role:'assistant',content:reply});
     saveState();
-  }catch(e){STATE.tcChats[m.id].push({role:'assistant',content:'Error. Check your API key.'});}
+  }catch(e){
+    console.error(e);
+    STATE.tcChats[m.id].push({role:'assistant',content:'Error. Check your API key.'});
+  }
 
   delete STATE.generating[m.id];
   renderDebriefPane(m);
@@ -787,9 +836,16 @@ function buildToc(){
   headings.forEach((h,i)=>{h.id=`s${i}`;});
   tocCol.innerHTML=`<div class="toc-label">Sections</div>${Array.from(headings).map((h,i)=>`<a class="toc-item" data-target="s${i}">${h.textContent}</a>`).join('')}`;
   const sc=paper.closest('.brief-paper-col');
-  tocCol.querySelectorAll('.toc-item').forEach(item=>{item.addEventListener('click',()=>{const t=document.getElementById(item.dataset.target);if(t&&sc)sc.scrollTo({top:t.offsetTop-20,behavior:'smooth'});});});
+  tocCol.querySelectorAll('.toc-item').forEach(item=>{
+    item.addEventListener('click',()=>{const t=document.getElementById(item.dataset.target);if(t&&sc)sc.scrollTo({top:t.offsetTop-20,behavior:'smooth'});});
+  });
   if(!sc)return;
-  const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){tocCol.querySelectorAll('.toc-item').forEach(t=>t.classList.remove('active'));const a=tocCol.querySelector(`[data-target="${e.target.id}"]`);if(a)a.classList.add('active');}});},{root:sc,threshold:0,rootMargin:'0px 0px -75% 0px'});
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting){
+      tocCol.querySelectorAll('.toc-item').forEach(t=>t.classList.remove('active'));
+      const a=tocCol.querySelector(`[data-target="${e.target.id}"]`);if(a)a.classList.add('active');
+    }});
+  },{root:sc,threshold:0,rootMargin:'0px 0px -75% 0px'});
   headings.forEach(h=>obs.observe(h));
   const first=tocCol.querySelector('.toc-item');if(first)first.classList.add('active');
 }
@@ -850,14 +906,15 @@ Research deeply. Be specific — names, numbers, real context. No filler. Direct
 
 function getBriefPrompt(meetingId){
   const custom=STATE.briefTemplate.trim();
-  let base=custom?`You are Doss, a sales intelligence tool for an AE at Aleph.\n${ALEPH_CONTEXT}\n\nBuild a pre-call brief following these instructions. Research deeply. Be specific. No filler. Markdown.\n\nINSTRUCTIONS:\n{{PRIOR_CALL_CONTEXT}}\n${custom}`:DEFAULT_BRIEF_PROMPT;
+  let base=custom
+    ?`You are Doss, a sales intelligence tool for an AE at Aleph.\n${ALEPH_CONTEXT}\n\nBuild a pre-call brief following these instructions. Research deeply. Be specific. No filler. Markdown.\n\n{{PRIOR_CALL_CONTEXT}}\n\nINSTRUCTIONS:\n${custom}`
+    :DEFAULT_BRIEF_PROMPT;
 
-  // Inject prior call context if available
   const transcripts=STATE.transcripts[meetingId];
-  if(transcripts&&transcripts.length>0){
+  if(Array.isArray(transcripts)&&transcripts.length>0){
     const ctx=transcripts.map(t=>`=== ${t.title}${t.date?' ('+new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+')':''}  ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,40000);
-    const priorBlock=`PRIOR CALL TRANSCRIPTS — THIS IS YOUR PRIMARY INTELLIGENCE SOURCE. These are verbatim transcripts from previous calls with this prospect. Everything the prospect said, every signal, every objection, every moment of enthusiasm — it's all here. Weight this above public research.\n\n${ctx}\n\nAFTER REVIEWING PRIOR CALLS, supplement with web research for anything still unknown.`;
-    base=base.replace('{{PRIOR_CALL_CONTEXT}}',priorBlock);
+    const block=`PRIOR CALL TRANSCRIPTS — PRIMARY INTELLIGENCE SOURCE. Weight this above public research. These are verbatim transcripts from previous calls with this prospect.\n\n${ctx}\n\nAfter reviewing prior calls, use web research to fill any remaining gaps.`;
+    base=base.replace('{{PRIOR_CALL_CONTEXT}}',block);
   }else{
     base=base.replace('{{PRIOR_CALL_CONTEXT}}','');
   }
@@ -882,15 +939,15 @@ async function generateBrief(m){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter your Anthropic API key in Settings.');return;}
   STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
   const org=STATE.orgDomain||'';
-  const ext=(m.attendees||[]).filter(a=>{const d=a.email?.includes('@')?a.email.split('@')[1].toLowerCase():'';return d&&d!==org&&!d.includes('resource.calendar.google.com');});
-  const intNames=(m.attendees||[]).filter(a=>{const d=a.email?.includes('@')?a.email.split('@')[1].toLowerCase():'';return d===org;}).map(a=>a.name||a.email).join(', ');
-  const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''} | Domain: ${a.email?.includes('@')?a.email.split('@')[1]:''}`).join('\n')||'- No external attendee details';
-  const hasPriorCalls=(STATE.transcripts[m.id]||[]).length>0;
+  const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
+  const intNames=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d===org;}).map(a=>a.name||a.email).join(', ');
+  const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''} | Domain: ${emailDomain(a.email)}`).join('\n')||'- No external attendee details';
+  const hasPriorCalls=Array.isArray(STATE.transcripts[m.id])&&STATE.transcripts[m.id].length>0;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:STATE.model,max_tokens:4000,stream:true,system:getBriefPrompt(m.id),
-        messages:[{role:'user',content:`Build a dossier. ONLY research EXTERNAL attendees. Do NOT mention anyone from my company (${org||'my company'}).\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n${m.location?'Location: '+m.location:''}\n\nEXTERNAL ATTENDEES:\n${attInfo}\n\n${intNames?'Internal (SKIP): '+intNames:''}\n\n${hasPriorCalls?'NOTE: Prior call transcripts have been injected into the system prompt. Lead with what was uncovered in those calls.':''}`}],
+        messages:[{role:'user',content:`Build a dossier. ONLY research EXTERNAL attendees. Do NOT mention anyone from my company (${org||'my company'}).\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n${m.location?'Location: '+m.location:''}\n\nEXTERNAL ATTENDEES:\n${attInfo}\n\n${intNames?'Internal (SKIP): '+intNames:''}\n\n${hasPriorCalls?'NOTE: Prior call transcripts are in the system prompt. Lead with what was uncovered in those calls before supplementing with web research.':''}`}],
         tools:[{type:'web_search_20250305',name:'web_search'}]})});
     const ct=res.headers.get('content-type')||'';
     if(!res.ok||!ct.includes('text/event-stream')){
@@ -928,29 +985,23 @@ async function generateBrief(m){
       if(rawText)STATE.briefs[m.id]=markdownToHtml(rawText);
       else if(!STATE.briefs[m.id])STATE.briefs[m.id]='<p style="color:var(--text-muted)">Try regenerating.</p>';
     }
-  }catch(e){console.error(e);STATE.briefs[m.id]='<p style="color:var(--red)">Error generating brief. Check console.</p>';}
+  }catch(e){console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;}
   delete STATE.generating[m.id];saveState();renderMeetingList();renderBriefPane(m);updateActionBtns(m);
 }
+
 function copyBrief(){const el=document.querySelector('.brief-paper');if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();}}
 
 // ── FOLLOW-UP EMAIL ──
 async function runFollowup(m){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter API key in Settings.');return;}
   const transcripts=STATE.transcripts[m.id];
-  const hasTranscripts=transcripts&&transcripts.length>0;
+  const hasTranscripts=Array.isArray(transcripts)&&transcripts.length>0;
   const pasteText=STATE.followups[m.id]?.transcript?.trim();
   if(!hasTranscripts&&!pasteText){alert('Paste a transcript first.');return;}
-
   STATE.generating[m.id]='followup';renderDebriefPane(m);updateActionBtns(m);
-
-  // Use full transcripts or paste fallback
-  let transcriptContent='';
-  if(hasTranscripts){
-    transcriptContent=transcripts.map(t=>`=== ${t.title} ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,12000);
-  }else{
-    transcriptContent=pasteText;
-  }
-
+  const transcriptContent=hasTranscripts
+    ?transcripts.map(t=>`=== ${t.title} ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,12000)
+    :pasteText;
   const ai=(m.attendees||[]).map(a=>`${a.name||'?'} (${a.email||''})`).join(', ');
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
@@ -962,7 +1013,6 @@ async function runFollowup(m){
     if(!STATE.followups[m.id])STATE.followups[m.id]={transcript:'',email:null};
     STATE.followups[m.id].email=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
   }catch(e){console.error(e);STATE.followups[m.id].email='Error writing email. Try again.';}
-
   delete STATE.generating[m.id];saveState();renderDebriefPane(m);updateActionBtns(m);
   const pillBtn=document.querySelector('.pill-opt[data-tab="debrief"]');
   if(pillBtn&&STATE.followups[m.id]?.email&&!pillBtn.querySelector('.pill-dot'))pillBtn.insertAdjacentHTML('beforeend','<span class="pill-dot"></span>');
@@ -1002,10 +1052,14 @@ document.getElementById('todayBtn').addEventListener('click',async()=>{
   document.getElementById('mainPanel').innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier.</p></div>`;
 });
 
-// API keys
+// Load all persisted keys
 const savedKey=localStorage.getItem('doss_apikey');
 if(savedKey){document.getElementById('apiKey').value=savedKey;document.getElementById('apiBar').classList.toggle('connected',savedKey.startsWith('sk-ant-'));}
-document.getElementById('apiKey').addEventListener('input',e=>{const v=e.target.value;document.getElementById('apiBar').classList.toggle('connected',v.startsWith('sk-ant-'));localStorage.setItem('doss_apikey',v);});
+document.getElementById('apiKey').addEventListener('input',e=>{
+  const v=e.target.value;
+  document.getElementById('apiBar').classList.toggle('connected',v.startsWith('sk-ant-'));
+  localStorage.setItem('doss_apikey',v);
+});
 
 const savedFathom=localStorage.getItem('doss_fathomkey');
 if(savedFathom){document.getElementById('fathomKey').value=savedFathom;document.getElementById('fathomBar').classList.add('connected');document.getElementById('fathomDot').style.background='var(--green)';}
@@ -1027,7 +1081,11 @@ document.getElementById('proxyUrl').addEventListener('input',e=>{
   localStorage.setItem('doss_proxyurl',v);
 });
 
-document.getElementById('settingsBtn').addEventListener('click',()=>{const p=document.getElementById('settingsPanel'),b=document.getElementById('settingsBtn');p.classList.toggle('open');b.classList.toggle('active',p.classList.contains('open'));});
+document.getElementById('settingsBtn').addEventListener('click',()=>{
+  const p=document.getElementById('settingsPanel'),b=document.getElementById('settingsBtn');
+  p.classList.toggle('open');
+  b.classList.toggle('active',p.classList.contains('open'));
+});
 
 const templateEl=document.getElementById('briefTemplate');
 templateEl.value=STATE.briefTemplate;
