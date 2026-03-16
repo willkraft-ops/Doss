@@ -273,6 +273,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <input type="password" class="api-input" id="fathomKey" placeholder="Fathom API key…" autocomplete="off">
       </div>
       <div class="settings-hint" style="margin-top:4px;">Enables prior call context in the Follow-up tab.</div>
+      <label>Fathom Proxy URL</label>
+      <div class="api-bar" id="proxyBar">
+        <div class="api-dot" id="proxyDot"></div>
+        <span class="api-lbl">URL</span>
+        <input type="text" class="api-input" id="proxyUrl" placeholder="https://fathom-proxy.yourname.workers.dev" autocomplete="off">
+      </div>
+      <div class="settings-hint" style="margin-top:4px;">Cloudflare Worker proxy URL. <a href="https://developers.cloudflare.com/workers/get-started/guide/" target="_blank" style="color:var(--accent);text-decoration:none;">Setup guide ↗</a></div>
       <label>Brief Template <span class="save-indicator" id="briefSaved">Saved ✓</span></label>
       <textarea class="settings-textarea" id="briefTemplate" placeholder="Leave blank for the full default dossier."></textarea>
       <div class="settings-hint">Leave blank for the full default dossier.</div>
@@ -632,10 +639,16 @@ async function gatherFathomContext(m){
   renderDebriefPane(m);
 
   try{
-    // Fetch all meetings with transcripts from Fathom
+    const proxyUrl=(localStorage.getItem('doss_proxyurl')||'').replace(/\/$/,'');
+    if(!proxyUrl){
+      delete STATE.gatheringContext[m.id];
+      alert('Add your Fathom Proxy URL in Settings. See the setup guide to deploy the Cloudflare Worker in ~2 minutes.');
+      return;
+    }
+
     const params=new URLSearchParams({include_transcript:'true',per_page:'50'});
-    const res=await fetch(`https://api.fathom.ai/external/v1/meetings?${params}`,{
-      headers:{'X-Api-Key':fathomKey,'Content-Type':'application/json'}
+    const res=await fetch(`${proxyUrl}/meetings?${params}`,{
+      headers:{'X-Fathom-Key':fathomKey,'Content-Type':'application/json'}
     });
 
     if(!res.ok){
@@ -666,20 +679,15 @@ async function gatherFathomContext(m){
     }));
 
     saveState();
+    delete STATE.gatheringContext[m.id];
+    renderDebriefPane(m);
   }catch(e){
     console.error('Fathom fetch error:',e);
-    // Check if it's a CORS error
-    const msg=e.message||'';
-    if(msg.includes('Failed to fetch')||msg.includes('CORS')){
-      alert('Fathom API blocked the request from the browser (CORS). This may require a backend proxy. Check console for details.');
-    }else{
-      alert(`Fathom error: ${e.message}`);
-    }
+    alert(`Fathom error: ${e.message}`);
     STATE.transcripts[m.id]=[];
+    delete STATE.gatheringContext[m.id];
+    renderDebriefPane(m);
   }
-
-  delete STATE.gatheringContext[m.id];
-  renderDebriefPane(m);
 }
 
 function clearTranscripts(meetingId){
@@ -950,14 +958,14 @@ const savedKey=localStorage.getItem('doss_apikey');
 if(savedKey){document.getElementById('apiKey').value=savedKey;document.getElementById('apiBar').classList.toggle('connected',savedKey.startsWith('sk-ant-'));}
 document.getElementById('apiKey').addEventListener('input',e=>{const v=e.target.value;document.getElementById('apiBar').classList.toggle('connected',v.startsWith('sk-ant-'));localStorage.setItem('doss_apikey',v);});
 
-const savedFathom=localStorage.getItem('doss_fathomkey');
-if(savedFathom){document.getElementById('fathomKey').value=savedFathom;document.getElementById('fathomBar').classList.add('connected');document.getElementById('fathomDot').style.background='var(--green)';}
-document.getElementById('fathomKey').addEventListener('input',e=>{
+const savedProxy=localStorage.getItem('doss_proxyurl');
+if(savedProxy){document.getElementById('proxyUrl').value=savedProxy;document.getElementById('proxyBar').classList.add('connected');document.getElementById('proxyDot').style.background='var(--green)';}
+document.getElementById('proxyUrl').addEventListener('input',e=>{
   const v=e.target.value.trim();
-  const bar=document.getElementById('fathomBar'),dot=document.getElementById('fathomDot');
+  const bar=document.getElementById('proxyBar'),dot=document.getElementById('proxyDot');
   if(v){bar.classList.add('connected');dot.style.background='var(--green)';}
   else{bar.classList.remove('connected');dot.style.background='';}
-  localStorage.setItem('doss_fathomkey',v);
+  localStorage.setItem('doss_proxyurl',v);
 });
 
 document.getElementById('settingsBtn').addEventListener('click',()=>{const p=document.getElementById('settingsPanel'),b=document.getElementById('settingsBtn');p.classList.toggle('open');b.classList.toggle('active',p.classList.contains('open'));});
