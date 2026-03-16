@@ -668,7 +668,7 @@ async function gatherFathomContext(m){
     console.log('Fathom raw response:', JSON.stringify(data).slice(0,2000));
 
     // Try every possible top-level array field
-    const allMeetings=data.data||data.meetings||data.items||data.results||(Array.isArray(data)?data:[]);
+    const allMeetings=data.items||data.data||data.meetings||data.results||(Array.isArray(data)?data:[]);
     console.log(`Fathom: ${allMeetings.length} meetings returned for emails:`, externalEmails);
 
     // If email filter returned nothing, fall back to fetching all and filtering by domain
@@ -702,12 +702,19 @@ async function gatherFathomContext(m){
     // Sort by date descending
     matched.sort((a,b)=>new Date(b.created_at||b.date||0)-new Date(a.created_at||a.date||0));
 
-    STATE.transcripts[m.id]=matched.map(fm=>({
-      title:fm.title||'Untitled Call',
-      date:fm.created_at||fm.date||null,
-      transcript:fm.transcript||fm.transcript_text||'',
-      id:fm.id,
-    }));
+    STATE.transcripts[m.id]=matched.map(fm=>{
+      // Transcript comes as array of {speaker, text, timestamp} objects
+      const rawTranscript=fm.transcript||fm.transcript_text||'';
+      const transcriptText=Array.isArray(rawTranscript)
+        ?rawTranscript.map(line=>`${line.speaker?.display_name||'Speaker'}: ${line.text}`).join('\n')
+        :rawTranscript;
+      return{
+        title:fm.title||fm.meeting_title||'Untitled Call',
+        date:fm.created_at||fm.date||null,
+        transcript:transcriptText,
+        id:fm.id,
+      };
+    });
 
     saveState();
     delete STATE.gatheringContext[m.id];
