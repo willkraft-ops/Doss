@@ -667,37 +667,26 @@ async function gatherFathomContext(m){
     const data=await res.json();
     console.log('Fathom raw response:', JSON.stringify(data).slice(0,2000));
 
-    // Try every possible top-level array field
-    const allMeetings=data.items||data.data||data.meetings||data.results||(Array.isArray(data)?data:[]);
-    console.log(`Fathom: ${allMeetings.length} meetings returned for emails:`, externalEmails);
+    // Fetch all meetings then filter client-side using transcript speaker emails
+    // This is more reliable than Fathom's server-side filter
+    const allParams=new URLSearchParams({include_transcript:'true',per_page:'50'});
+    const allRes=await fetch(`${proxyUrl}/meetings?${allParams}`,{
+      headers:{'X-Fathom-Key':fathomKey,'Content-Type':'application/json'}
+    });
+    const allData=await allRes.json();
+    const allMeetings=allData.items||allData.data||allData.meetings||allData.results||(Array.isArray(allData)?allData:[]);
 
-    // If email filter returned nothing, fall back to fetching all and filtering by domain
-    let matched=allMeetings;
-    if(matched.length===0&&externalDomains.length>0){
-      console.log('Email filter returned 0, trying domain fallback...');
-      const fallbackParams=new URLSearchParams({include_transcript:'true',per_page:'50'});
-      const fallbackRes=await fetch(`${proxyUrl}/meetings?${fallbackParams}`,{
-        headers:{'X-Fathom-Key':fathomKey,'Content-Type':'application/json'}
+    // Filter by checking transcript speaker emails against prospect domain
+    // matched_calendar_invitee_email on each utterance is the most reliable signal
+    const matched=allMeetings.filter(fm=>{
+      const transcript=fm.transcript||[];
+      if(!Array.isArray(transcript)||transcript.length===0)return false;
+      return transcript.some(line=>{
+        const speakerEmail=(line.speaker?.matched_calendar_invitee_email||'').toLowerCase();
+        return externalDomains.some(d=>speakerEmail.includes(d));
       });
-      const fallbackData=await fallbackRes.json();
-      console.log('Fathom fallback raw:', JSON.stringify(fallbackData).slice(0,1000));
-      const all=fallbackData.data||fallbackData.meetings||fallbackData.items||fallbackData.results||(Array.isArray(fallbackData)?fallbackData:[]);
-      console.log(`Fathom fallback: ${all.length} total meetings, sample:`, all[0]);
-      matched=all.filter(fm=>{
-        // Try every possible attendee field
-        const invitees=[
-          ...(fm.calendar_invitees||[]),
-          ...(fm.attendees||[]),
-          ...(fm.participants||[]),
-          ...(fm.invitees||[]),
-        ];
-        return invitees.some(inv=>{
-          const email=typeof inv==='string'?inv:(inv.email||inv.emailAddress||'');
-          return externalDomains.some(d=>email.toLowerCase().includes(d));
-        });
-      });
-      console.log(`Domain filter matched: ${matched.length} meetings`);
-    }
+    });
+    console.log(`Fathom: ${allMeetings.length} total, ${matched.length} matched domain(s):`, externalDomains);
 
     // Sort by date descending
     matched.sort((a,b)=>new Date(b.created_at||b.date||0)-new Date(a.created_at||a.date||0));
@@ -748,15 +737,36 @@ async function sendTranscriptChat(m){
   STATE.generating[m.id]='chat';
   renderDebriefPane(m);
 
-  // Build transcript context
+  // Build transcript context — format with speaker names and timestamps
   const transcripts=STATE.transcripts[m.id]||[];
   const transcriptContext=transcripts.map(t=>`=== ${t.title}${t.date?' ('+new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+')':''}  ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,24000);
+
+  // Identify the prospect company from external attendees
+  const prospectDomain=externalDomains[0]||'';
+  const prospectAttendees=(m.attendees||[]).filter(a=>emailDomain(a.email)===prospectDomain).map(a=>a.name||a.email).join(', ');
 
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:STATE.model,max_tokens:800,
-        system:`You are Doss, a sales intelligence tool. You have access to transcripts from prior sales calls. Answer questions about what was discussed — be specific and quote directly from the transcript when relevant. Be concise and direct.\n\nPRIOR CALL TRANSCRIPTS:\n${transcriptContext}`,
+        system:`You are Doss, a deal intelligence advisor for Will Kraft, an Account Executive at Aleph.
+${ALEPH_CONTEXT}
+
+WILL'S IDENTITY: Will Kraft is the AE. In transcripts he may appear as "Will Kraft", "will.kraft@getaleph.com", or just "Will". Treat anything said by Will as coming from the user you're advising.
+
+CURRENT DEAL: ${m.title}
+Prospect contacts: ${prospectAttendees||'Unknown'}
+Prospect domain: ${prospectDomain}
+
+YOUR JOB: You have full transcripts from every prior recorded call with this prospect. Answer Will's questions directly and specifically — quote what was actually said when relevant. You know Aleph's product cold. You understand deal dynamics. Be a sharp advisor, not a search engine.
+
+If Will asks "what did I quote them" — find the pricing or numbers Will mentioned.
+If Will asks about pain — synthesize what the prospect actually said across all calls.
+If Will asks about next steps — pull from what was committed to.
+Always cite which call something came from.
+
+PRIOR CALL TRANSCRIPTS:
+${transcriptContext}`,
         messages:STATE.tcChats[m.id].map(x=>({role:x.role,content:x.content}))})});
     const data=await res.json();
     const reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
