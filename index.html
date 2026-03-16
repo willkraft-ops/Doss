@@ -3,216 +3,265 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Doss — Daily Meeting Command Center</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Doss — Daily Dossier</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --cream-50: #f0ebe2;
-  --cream-100: #eae4d8;
-  --cream-150: #e4ddd0;
-  --cream-200: #dbd3c4;
-  --cream-300: #ccc2b0;
-  --cream-400: #b5a894;
-  --cream-500: #978a78;
-  --cream-600: #786c5e;
-  --cream-700: #564c42;
-  --cream-800: #3a332c;
-  --cream-900: #1e1a16;
-  --accent: #b5703a;
-  --accent-warm: #c4824e;
-  --accent-light: #daa878;
-  --accent-bg: rgba(181, 112, 58, 0.10);
-  --accent-border: rgba(181, 112, 58, 0.22);
-  --green: #5a8c66;
-  --green-soft: #6b9c77;
-  --green-bg: rgba(90, 140, 102, 0.10);
-  --green-border: rgba(90, 140, 102, 0.24);
-  --yellow: #c49520;
-  --yellow-bg: rgba(196, 149, 32, 0.1);
-  --red: #b05a3a;
-  --red-bg: rgba(176, 90, 58, 0.08);
-  --bg: #e6dfd4;
-  --surface: #eee8dc;
-  --surface-warm: #eae4d8;
-  --surface-hover: #e4ddd0;
-  --border: #d4cab8;
-  --border-subtle: #dbd3c4;
-  --text: #2c2520;
-  --text-secondary: #6b6058;
-  --text-muted: #9c9080;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'DM Sans', -apple-system, sans-serif;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --shadow-sm: 0 1px 3px rgba(44,37,32,0.07);
-  --shadow: 0 2px 8px rgba(44,37,32,0.09), 0 1px 3px rgba(44,37,32,0.05);
-  --shadow-lg: 0 8px 28px rgba(44,37,32,0.12), 0 2px 8px rgba(44,37,32,0.06);
-  --shadow-glow: 0 0 0 1px rgba(181, 112, 58, 0.10), 0 2px 12px rgba(181, 112, 58, 0.08);
+  --cream-50:#f0ebe2;--cream-100:#eae4d8;--cream-150:#e4ddd0;--cream-200:#dbd3c4;--cream-300:#ccc2b0;
+  --cream-400:#b5a894;--cream-500:#978a78;--cream-600:#786c5e;--cream-700:#564c42;--cream-800:#3a332c;--cream-900:#1e1a16;
+  --accent:#b5703a;--accent-warm:#c4824e;--accent-light:#daa878;--accent-bg:rgba(181,112,58,0.10);--accent-border:rgba(181,112,58,0.22);
+  --green:#5a8c66;--green-soft:#6b9c77;--green-bg:rgba(90,140,102,0.10);--green-border:rgba(90,140,102,0.24);
+  --yellow:#c49520;--yellow-bg:rgba(196,149,32,0.1);--red:#b05a3a;--red-bg:rgba(176,90,58,0.08);
+  --bg:#e6dfd4;--surface:#eee8dc;--surface-warm:#eae4d8;--surface-hover:#e4ddd0;
+  --border:#d4cab8;--border-subtle:#dbd3c4;
+  --text:#2c2520;--text-secondary:#6b6058;--text-muted:#9c9080;
+  --paper:#f5f0e8;--paper-border:#cec6b6;
+  --mono:'JetBrains Mono',monospace;--sans:'DM Sans',-apple-system,sans-serif;--serif:'DM Serif Display',Georgia,serif;
+  --radius:8px;--radius-lg:12px;
+  --shadow-sm:0 1px 3px rgba(44,37,32,0.07);
+  --shadow:0 2px 8px rgba(44,37,32,0.09),0 1px 3px rgba(44,37,32,0.05);
+  --shadow-lg:0 8px 28px rgba(44,37,32,0.12),0 2px 8px rgba(44,37,32,0.06);
+  --shadow-glow:0 0 0 1px rgba(181,112,58,0.10),0 2px 12px rgba(181,112,58,0.08);
+  --paper-shadow:0 1px 2px rgba(44,37,32,0.06),0 4px 16px rgba(44,37,32,0.10),0 12px 40px rgba(44,37,32,0.08);
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; }
-body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased;
-  background-image: linear-gradient(rgba(181,112,58,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(181,112,58,0.018) 1px, transparent 1px), radial-gradient(circle at 30% 20%, rgba(181,112,58,0.03) 0%, transparent 50%);
-  background-size: 28px 28px, 28px 28px, 100% 100%;
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(rgba(181,112,58,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(181,112,58,0.018) 1px,transparent 1px);
+  background-size:28px 28px;}
+.app{display:flex;height:100vh;}
+
+/* SIDEBAR */
+.sidebar{width:308px;min-width:308px;background:var(--surface-warm);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-header{padding:18px 18px 0;flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.logo-mark{width:36px;height:36px;flex-shrink:0;}
+.logo-text{font-size:21px;font-weight:700;letter-spacing:-0.8px;color:var(--cream-900);}
+.logo-sub{font-size:10px;color:var(--text-muted);font-weight:400;letter-spacing:0.5px;text-transform:uppercase;}
+.settings-toggle{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-muted);transition:all 0.15s;margin-left:auto;}
+.settings-toggle:hover{background:var(--cream-150);color:var(--text);}
+
+/* TZ */
+.tz-bar{position:relative;margin:10px 18px 0;}
+.tz-picker{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--cream-150);border:1px solid var(--border-subtle);border-radius:var(--radius);font-size:12px;color:var(--text);cursor:pointer;transition:all 0.15s;}
+.tz-picker:hover{border-color:var(--cream-400);}
+.tz-picker svg{flex-shrink:0;color:var(--text-muted);}
+.tz-picker-label{flex:1;font-family:var(--mono);font-size:11.5px;font-weight:500;}
+.tz-picker-offset{font-family:var(--mono);font-size:10.5px;color:var(--text-muted);}
+.tz-dropdown{display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);z-index:100;max-height:280px;overflow:hidden;flex-direction:column;}
+.tz-dropdown.open{display:flex;}
+.tz-search{padding:9px 11px;border:none;border-bottom:1px solid var(--border-subtle);font-family:var(--sans);font-size:12px;color:var(--text);background:transparent;outline:none;}
+.tz-search::placeholder{color:var(--text-muted);}
+.tz-list{overflow-y:auto;max-height:240px;}
+.tz-list::-webkit-scrollbar{width:4px;}
+.tz-list::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
+.tz-option{padding:7px 11px;font-size:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background 0.1s;}
+.tz-option:hover{background:var(--cream-150);}
+.tz-option.active{background:var(--accent-bg);color:var(--accent);}
+.tz-option-city{font-weight:500;color:var(--text);}
+.tz-option-offset{font-family:var(--mono);font-size:10.5px;color:var(--text-muted);}
+.tz-option.active .tz-option-city{color:var(--accent);}
+.tz-option-region{font-size:10px;color:var(--text-muted);margin-left:5px;font-weight:400;}
+
+/* AUTH */
+.auth-bar{margin:10px 18px 0;}
+.api-bar{padding:9px 11px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);display:flex;align-items:center;gap:8px;margin-top:7px;}
+.api-bar.connected{background:var(--green-bg);border-color:var(--green-border);}
+.api-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+.api-bar.connected .api-dot{background:var(--green);}
+.api-bar label{font-size:10.5px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;flex-shrink:0;}
+.api-input{flex:1;border:none;background:transparent;font-family:var(--mono);font-size:11px;color:var(--text);outline:none;}
+.api-input::placeholder{color:var(--text-muted);}
+.google-btn{width:100%;padding:8px 11px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);font-family:var(--sans);font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;justify-content:center;}
+.google-btn:hover{background:var(--cream-150);border-color:var(--cream-400);}
+.google-btn.signed-in{background:var(--green-bg);border-color:var(--green-border);color:var(--green);cursor:default;}
+
+/* DATE + MEETINGS */
+.date-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;}
+.date-label{font-weight:600;font-size:14px;color:var(--text);}
+.date-sub{font-size:11px;color:var(--text-muted);}
+.day-nav{display:flex;gap:4px;}
+.day-nav button{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:all 0.15s;}
+.day-nav button:hover{background:var(--cream-150);color:var(--text);}
+.meeting-list-header{padding:6px 18px;display:flex;align-items:center;justify-content:space-between;}
+.meeting-list-header span{font-size:10.5px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);font-weight:600;}
+.meeting-count{font-family:var(--mono);font-size:10.5px;color:var(--text-muted);}
+.meeting-list{flex:1;overflow-y:auto;padding:0 10px 10px;}
+.meeting-list::-webkit-scrollbar{width:4px;}
+.meeting-list::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
+.meeting-card{padding:11px 12px;border-radius:var(--radius);cursor:pointer;transition:all 0.2s;border:1px solid transparent;margin-bottom:3px;}
+.meeting-card:hover{background:var(--cream-150);border-color:var(--border-subtle);}
+.meeting-card.active{background:var(--surface);border-color:var(--accent-border);box-shadow:var(--shadow-glow);}
+.meeting-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px;}
+.meeting-time{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:500;}
+.meeting-status{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.status-none{background:var(--cream-300);}
+.status-ready{background:var(--green-soft);box-shadow:0 0 5px rgba(90,140,102,0.3);}
+.status-generating{background:var(--yellow);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.meeting-name{font-weight:600;font-size:13px;color:var(--text);margin-bottom:1px;line-height:1.3;}
+.meeting-meta{font-size:11.5px;color:var(--text-muted);}
+.load-bar{padding:10px 18px;border-top:1px solid var(--border-subtle);flex-shrink:0;}
+.add-meeting-btn{width:100%;padding:7px;border-radius:var(--radius);border:1px dashed var(--border);background:transparent;color:var(--text-muted);font-family:var(--sans);font-size:12px;cursor:pointer;transition:all 0.15s;}
+.add-meeting-btn:hover{border-color:var(--cream-400);color:var(--text-secondary);background:var(--cream-150);}
+
+/* SETTINGS PANEL */
+.settings-panel{display:none;padding:14px 18px;border-top:1px solid var(--border-subtle);flex-shrink:0;max-height:40vh;overflow-y:auto;}
+.settings-panel.open{display:block;}
+.settings-panel label{display:block;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:5px;}
+.settings-panel label:not(:first-child){margin-top:12px;}
+.settings-textarea{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);font-size:12px;color:var(--text);background:var(--surface);outline:none;resize:vertical;min-height:90px;line-height:1.5;transition:border-color 0.15s;}
+.settings-textarea:focus{border-color:var(--cream-400);}
+.settings-textarea::placeholder{color:var(--text-muted);}
+.settings-hint{font-size:11px;color:var(--text-muted);margin-top:3px;line-height:1.4;}
+.save-indicator{display:inline-block;font-size:11px;color:var(--green);font-weight:500;margin-left:8px;opacity:0;transition:opacity 0.3s;}
+.save-indicator.show{opacity:1;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);
+  background-image:linear-gradient(rgba(180,160,130,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(180,160,130,0.05) 1px,transparent 1px);background-size:24px 24px;}
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);gap:10px;padding:40px;}
+.empty-icon{width:44px;height:44px;background:var(--cream-200);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.empty-state h3{font-size:15px;font-weight:600;color:var(--text-secondary);}
+.empty-state p{font-size:13px;text-align:center;max-width:300px;line-height:1.6;}
+
+/* DETAIL HEADER */
+.detail-header{padding:16px 22px;border-bottom:1px solid var(--border-subtle);background:var(--surface);flex-shrink:0;}
+.detail-header-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px;}
+.detail-title{font-size:18px;font-weight:700;letter-spacing:-0.4px;color:var(--text);}
+.detail-time{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:500;background:var(--accent-bg);border:1px solid var(--accent-border);padding:3px 9px;border-radius:5px;flex-shrink:0;}
+.detail-attendees{font-size:12px;color:var(--text-secondary);}
+
+/* TAB BAR */
+.tab-bar{display:flex;padding:0 22px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;position:relative;}
+.tab:hover{color:var(--text-secondary);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab .tab-dot{width:5px;height:5px;border-radius:50%;background:var(--green);position:absolute;top:9px;right:9px;}
+
+/* TAB CONTENT */
+.tab-content{flex:1;overflow-y:auto;padding:20px 22px;}
+.tab-content::-webkit-scrollbar{width:4px;}
+.tab-content::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
+.tab-content.brief-mode{overflow:hidden;padding:0;display:flex;flex-direction:column;}
+
+/* BRIEF TOOLBAR */
+.brief-toolbar{padding:10px 16px;border-bottom:1px solid var(--border-subtle);display:flex;gap:7px;align-items:center;flex-shrink:0;background:var(--surface);}
+.gen-btn{padding:7px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:7px;box-shadow:0 1px 4px rgba(181,112,58,0.2);}
+.gen-btn:hover{background:var(--accent-warm);}
+.gen-btn:disabled{background:var(--cream-300);box-shadow:none;cursor:not-allowed;}
+.gen-btn.secondary{background:var(--cream-150);color:var(--text-secondary);border:1px solid var(--border);box-shadow:none;}
+.gen-btn.secondary:hover{background:var(--cream-200);color:var(--text);}
+
+/* BRIEF TWO-PANE */
+.brief-layout{flex:1;display:flex;overflow:hidden;}
+
+/* TOC COLUMN */
+.brief-toc-col{width:172px;min-width:172px;overflow-y:auto;padding:18px 10px 18px 14px;border-right:1px solid var(--border-subtle);display:flex;flex-direction:column;gap:1px;background:var(--surface-warm);}
+.brief-toc-col::-webkit-scrollbar{width:3px;}
+.brief-toc-col::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
+.toc-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);padding:0 7px 6px;border-bottom:1px solid var(--border-subtle);margin-bottom:4px;}
+.toc-item{display:block;font-size:11.5px;font-weight:500;color:var(--text-muted);text-decoration:none;padding:5px 7px;border-radius:4px;line-height:1.35;transition:all 0.12s;cursor:pointer;border-left:2px solid transparent;}
+.toc-item:hover{color:var(--text-secondary);background:var(--cream-150);}
+.toc-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-bg);font-weight:600;}
+.toc-skeleton{padding:5px 7px;display:flex;flex-direction:column;gap:7px;}
+.toc-skel{height:10px;background:var(--cream-200);border-radius:3px;animation:shimmer 1.5s infinite;}
+.toc-skel:nth-child(2){width:75%;}
+.toc-skel:nth-child(3){width:85%;}
+.toc-skel:nth-child(4){width:60%;}
+.toc-skel:nth-child(5){width:80%;}
+.toc-skel:nth-child(6){width:70%;}
+@keyframes shimmer{0%,100%{opacity:0.45}50%{opacity:0.9}}
+
+/* PAPER SCROLL AREA */
+.brief-paper-col{flex:1;overflow-y:auto;padding:28px 32px 48px;}
+.brief-paper-col::-webkit-scrollbar{width:4px;}
+.brief-paper-col::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
+
+/* THE PAPER */
+.brief-paper{
+  background:var(--paper);
+  border:1px solid var(--paper-border);
+  border-radius:2px;
+  max-width:660px;
+  box-shadow:var(--paper-shadow);
+  padding:44px 52px;
+  position:relative;
 }
-.app { display: flex; height: 100vh; }
-.sidebar { width: 320px; min-width: 320px; background: var(--surface-warm); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-.sidebar-header { padding: 20px 20px 0; flex-shrink: 0; }
-.logo { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.logo-mark { width: 38px; height: 38px; flex-shrink: 0; }
-.logo-text { font-size: 22px; font-weight: 700; letter-spacing: -0.8px; color: var(--cream-900); }
-.logo-sub { font-size: 11px; color: var(--text-muted); font-weight: 400; letter-spacing: 0.5px; text-transform: uppercase; }
-.tz-bar { position: relative; margin: 12px 20px 0; }
-.tz-picker { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--cream-150); border: 1px solid var(--border-subtle); border-radius: var(--radius); font-size: 12px; color: var(--text); cursor: pointer; transition: all 0.15s; }
-.tz-picker:hover { border-color: var(--cream-400); }
-.tz-picker svg { flex-shrink: 0; color: var(--text-muted); }
-.tz-picker-label { flex: 1; font-family: var(--mono); font-size: 12px; font-weight: 500; }
-.tz-picker-offset { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
-.tz-dropdown { display: none; position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); z-index: 100; max-height: 280px; overflow: hidden; flex-direction: column; }
-.tz-dropdown.open { display: flex; }
-.tz-search { padding: 10px 12px; border: none; border-bottom: 1px solid var(--border-subtle); font-family: var(--sans); font-size: 12px; color: var(--text); background: transparent; outline: none; }
-.tz-search::placeholder { color: var(--text-muted); }
-.tz-list { overflow-y: auto; max-height: 240px; }
-.tz-list::-webkit-scrollbar { width: 4px; }
-.tz-list::-webkit-scrollbar-thumb { background: var(--cream-300); border-radius: 2px; }
-.tz-option { padding: 8px 12px; font-size: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.1s; }
-.tz-option:hover { background: var(--cream-150); }
-.tz-option.active { background: var(--accent-bg); color: var(--accent); }
-.tz-option-city { font-weight: 500; color: var(--text); }
-.tz-option-offset { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
-.tz-option.active .tz-option-city { color: var(--accent); }
-.tz-option-region { font-size: 10px; color: var(--text-muted); margin-left: 6px; font-weight: 400; }
-.auth-bar { margin: 12px 20px 0; }
-.auth-bar .api-bar { margin: 0; margin-bottom: 8px; }
-.api-bar { padding: 10px 12px; background: var(--accent-bg); border: 1px solid var(--accent-border); border-radius: var(--radius); display: flex; align-items: center; gap: 8px; }
-.api-bar.connected { background: var(--green-bg); border-color: var(--green-border); }
-.api-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-.api-bar.connected .api-dot { background: var(--green); }
-.api-bar label { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
-.api-input { flex: 1; border: none; background: transparent; font-family: var(--mono); font-size: 11px; color: var(--text); outline: none; }
-.api-input::placeholder { color: var(--text-muted); }
-.google-btn { width: 100%; padding: 9px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 8px; justify-content: center; }
-.google-btn:hover { background: var(--cream-150); border-color: var(--cream-400); }
-.google-btn.signed-in { background: var(--green-bg); border-color: var(--green-border); color: var(--green); cursor: default; }
-.google-btn svg { flex-shrink: 0; }
-.date-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px; }
-.date-label { font-weight: 600; font-size: 15px; color: var(--text); }
-.date-sub { font-size: 12px; color: var(--text-muted); font-weight: 400; }
-.day-nav { display: flex; gap: 4px; }
-.day-nav button { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all 0.15s; }
-.day-nav button:hover { background: var(--cream-150); color: var(--text); }
-.meeting-list-header { padding: 8px 20px; display: flex; align-items: center; justify-content: space-between; }
-.meeting-list-header span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); font-weight: 600; }
-.meeting-count { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
-.meeting-list { flex: 1; overflow-y: auto; padding: 0 12px 12px; }
-.meeting-list::-webkit-scrollbar { width: 4px; }
-.meeting-list::-webkit-scrollbar-thumb { background: var(--cream-300); border-radius: 2px; }
-.meeting-card { padding: 14px; border-radius: var(--radius); cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent; margin-bottom: 4px; }
-.meeting-card:hover { background: var(--cream-150); border-color: var(--border-subtle); box-shadow: var(--shadow-sm); }
-.meeting-card.active { background: var(--surface); border-color: var(--accent-border); box-shadow: var(--shadow-glow); }
-.meeting-card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
-.meeting-time { font-family: var(--mono); font-size: 12px; color: var(--accent); font-weight: 500; }
-.meeting-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
-.status-none { background: var(--cream-300); }
-.status-ready { background: var(--green-soft); box-shadow: 0 0 6px rgba(90,140,102,0.3); }
-.status-generating { background: var(--yellow); animation: pulse 1.5s infinite; box-shadow: 0 0 6px rgba(196,149,32,0.3); }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-.meeting-name { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 2px; line-height: 1.3; }
-.meeting-meta { font-size: 12px; color: var(--text-muted); }
-.load-bar { padding: 12px 20px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; }
-.add-meeting-btn { width: 100%; padding: 8px; border-radius: var(--radius); border: 1px dashed var(--border); background: transparent; color: var(--text-muted); font-family: var(--sans); font-size: 12px; cursor: pointer; transition: all 0.15s; }
-.add-meeting-btn:hover { border-color: var(--cream-400); color: var(--text-secondary); background: var(--cream-150); }
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg);
-  background-image: linear-gradient(rgba(180,160,130,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(180,160,130,0.06) 1px, transparent 1px); background-size: 24px 24px; }
-.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; padding: 40px; }
-.empty-icon { width: 48px; height: 48px; background: var(--cream-200); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-.empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text-secondary); }
-.empty-state p { font-size: 13px; text-align: center; max-width: 320px; line-height: 1.6; }
-.detail-header { padding: 20px 28px; border-bottom: 1px solid var(--border-subtle); background: var(--surface); flex-shrink: 0; }
-.detail-header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
-.detail-title { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
-.detail-time { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 500; background: var(--accent-bg); border: 1px solid var(--accent-border); padding: 4px 10px; border-radius: 6px; flex-shrink: 0; }
-.detail-attendees { font-size: 13px; color: var(--text-secondary); }
-.tab-bar { display: flex; gap: 0; padding: 0 28px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.tab { padding: 12px 20px; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; position: relative; }
-.tab:hover { color: var(--text-secondary); }
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--accent-bg); }
-.tab .tab-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); position: absolute; top: 10px; right: 10px; }
-.tab-content { flex: 1; overflow-y: auto; padding: 24px 28px; }
-.tab-content::-webkit-scrollbar { width: 4px; }
-.tab-content::-webkit-scrollbar-thumb { background: var(--cream-300); border-radius: 2px; }
-.brief-actions { display: flex; gap: 8px; margin-bottom: 20px; }
-.gen-btn { padding: 10px 20px; border-radius: var(--radius); border: none; background: var(--accent); color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(181,112,58,0.2); }
-.gen-btn:hover { background: var(--accent-warm); box-shadow: 0 3px 10px rgba(181,112,58,0.25); }
-.gen-btn:disabled { background: var(--cream-300); box-shadow: none; cursor: not-allowed; }
-.gen-btn.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
-.gen-btn.secondary:hover { background: var(--cream-150); box-shadow: var(--shadow); }
-.brief-content { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; line-height: 1.7; box-shadow: var(--shadow); }
-.brief-content h1 { font-size: 18px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.3px; }
-.brief-content h2 { font-size: 15px; font-weight: 700; margin-top: 20px; margin-bottom: 8px; color: var(--accent); letter-spacing: -0.2px; }
-.brief-content h3 { font-size: 13px; font-weight: 600; margin-top: 14px; margin-bottom: 4px; color: var(--text-secondary); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.5px; }
-.brief-content p { margin-bottom: 10px; }
-.brief-content ul { margin-left: 20px; margin-bottom: 10px; }
-.brief-content li { margin-bottom: 4px; }
-.brief-content strong { font-weight: 600; color: var(--text); }
-.brief-content em { color: var(--text-secondary); }
-.brief-content code { font-family: var(--mono); font-size: 12px; background: var(--cream-150); padding: 1px 6px; border-radius: 3px; color: var(--accent); }
-.brief-empty { text-align: center; padding: 60px 40px; color: var(--text-muted); }
-.brief-empty-icon { width: 56px; height: 56px; background: var(--cream-200); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 24px; }
-.brief-empty h4 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
-.brief-empty p { font-size: 13px; line-height: 1.5; max-width: 340px; margin: 0 auto; }
-.chat-container { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.chat-messages { flex: 1; overflow-y: auto; padding-bottom: 16px; }
-.chat-messages::-webkit-scrollbar { width: 4px; }
-.chat-messages::-webkit-scrollbar-thumb { background: var(--cream-300); border-radius: 2px; }
-.chat-msg { margin-bottom: 16px; display: flex; gap: 10px; }
-.chat-avatar { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-.chat-avatar.user { background: var(--cream-200); color: var(--cream-700); }
-.chat-avatar.assistant { background: var(--accent); color: #fff; }
-.chat-bubble { flex: 1; min-width: 0; }
-.chat-bubble-name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px; }
-.chat-bubble-text { font-size: 14px; line-height: 1.65; color: var(--text); }
-.chat-bubble-text p { margin-bottom: 8px; }
-.chat-bubble-text strong { font-weight: 600; }
-.chat-bubble-text ul { margin-left: 18px; margin-bottom: 8px; }
-.chat-bubble-text li { margin-bottom: 3px; }
-.chat-bubble-text code { font-family: var(--mono); font-size: 12px; background: var(--cream-150); padding: 1px 5px; border-radius: 3px; }
-.chat-input-bar { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; }
-.chat-input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--sans); font-size: 13px; color: var(--text); background: var(--surface); outline: none; resize: none; min-height: 40px; max-height: 120px; transition: border-color 0.15s; }
-.chat-input:focus { border-color: var(--cream-400); }
-.chat-input::placeholder { color: var(--text-muted); }
-.chat-send { padding: 10px 16px; border-radius: var(--radius); border: none; background: var(--accent); color: #fff; font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all 0.2s; box-shadow: 0 2px 6px rgba(181,112,58,0.2); }
-.chat-send:hover { background: var(--accent-warm); }
-.chat-send:disabled { background: var(--cream-300); box-shadow: none; cursor: not-allowed; }
-.debrief-section { margin-bottom: 20px; }
-.debrief-section label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 8px; }
-.debrief-textarea { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--sans); font-size: 13px; color: var(--text); background: var(--surface); outline: none; resize: vertical; min-height: 140px; line-height: 1.6; transition: border-color 0.15s; }
-.debrief-textarea:focus { border-color: var(--cream-400); }
-.debrief-textarea::placeholder { color: var(--text-muted); }
-.debrief-output { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-top: 16px; }
-.debrief-output h4 { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-.copy-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); font-family: var(--sans); font-size: 12px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; }
-.copy-btn:hover { background: var(--cream-150); color: var(--text); }
-.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
-.spinner.dark { border-color: var(--cream-300); border-top-color: var(--accent); }
-@keyframes spin { to { transform: rotate(360deg); } }
-.gen-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; gap: 16px; color: var(--text-secondary); }
-.gen-overlay .spinner.dark { width: 24px; height: 24px; border-width: 3px; }
-.gen-overlay p { font-size: 13px; }
-/* Settings panel */
-.settings-toggle { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: all 0.15s; margin-left: auto; }
-.settings-toggle:hover { background: var(--cream-150); color: var(--text); }
-.settings-panel { display: none; padding: 16px 20px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; max-height: 45vh; overflow-y: auto; }
-.settings-panel.open { display: block; }
-.settings-panel label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); margin-bottom: 6px; }
-.settings-panel label:not(:first-child) { margin-top: 14px; }
-.settings-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--sans); font-size: 12px; color: var(--text); background: var(--surface); outline: none; resize: vertical; min-height: 100px; line-height: 1.5; transition: border-color 0.15s; }
-.settings-textarea:focus { border-color: var(--cream-400); }
-.settings-textarea::placeholder { color: var(--text-muted); }
-.settings-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
-.save-indicator { display: inline-block; font-size: 11px; color: var(--green); font-weight: 500; margin-left: 8px; opacity: 0; transition: opacity 0.3s; }
-.save-indicator.show { opacity: 1; }
-@media (max-width: 768px) { .sidebar { width: 280px; min-width: 280px; } }
+.brief-paper::before{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(transparent,transparent 27px,rgba(181,112,58,0.04) 27px,rgba(181,112,58,0.04) 28px);
+  pointer-events:none;border-radius:2px;
+}
+
+/* PAPER TYPOGRAPHY */
+.brief-paper h1{
+  font-family:var(--serif);font-size:22px;font-weight:400;color:var(--cream-900);
+  letter-spacing:-0.2px;margin-bottom:20px;padding-bottom:14px;
+  border-bottom:1px solid var(--paper-border);line-height:1.25;
+}
+.brief-paper h2{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;
+  color:var(--accent);margin-top:28px;margin-bottom:10px;
+  padding-bottom:6px;border-bottom:1px solid rgba(181,112,58,0.18);
+  scroll-margin-top:16px;
+}
+.brief-paper h2:first-of-type{margin-top:0;}
+.brief-paper h3{
+  font-size:12px;font-weight:600;color:var(--text-secondary);
+  margin-top:12px;margin-bottom:3px;font-style:italic;
+}
+.brief-paper p{font-size:13.5px;line-height:1.68;margin-bottom:7px;color:var(--text);}
+.brief-paper p:last-child{margin-bottom:0;}
+.brief-paper ul{margin:4px 0 8px 0;list-style:none;}
+.brief-paper ul li{
+  font-size:13.5px;line-height:1.65;margin-bottom:4px;
+  padding-left:16px;color:var(--text);position:relative;
+}
+.brief-paper ul li::before{
+  content:'—';position:absolute;left:0;color:var(--cream-400);font-size:12px;line-height:1.65;
+}
+.brief-paper ol{margin:4px 0 8px 14px;}
+.brief-paper ol li{font-size:13.5px;line-height:1.65;margin-bottom:4px;color:var(--text);}
+.brief-paper strong{font-weight:600;color:var(--cream-900);}
+.brief-paper em{color:var(--text-secondary);}
+.brief-paper code{font-family:var(--mono);font-size:11.5px;background:var(--cream-200);padding:1px 5px;border-radius:2px;color:var(--accent);}
+
+/* BRIEF EMPTY */
+.brief-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:60px 40px;color:var(--text-muted);}
+.brief-empty-icon{width:52px;height:52px;background:var(--cream-200);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;}
+.brief-empty h4{font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;}
+.brief-empty p{font-size:13px;line-height:1.5;max-width:300px;}
+
+/* SPINNER */
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
+.spinner.dark{border-color:var(--cream-300);border-top-color:var(--accent);}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* DEBRIEF */
+.debrief-section{margin-bottom:16px;}
+.debrief-section label{display:block;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:7px;}
+.debrief-textarea{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:var(--radius);font-family:var(--sans);font-size:13px;color:var(--text);background:var(--surface);outline:none;resize:vertical;min-height:130px;line-height:1.6;transition:border-color 0.15s;}
+.debrief-textarea:focus{border-color:var(--cream-400);}
+.debrief-textarea::placeholder{color:var(--text-muted);}
+.debrief-output{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-top:14px;}
+.debrief-output h4{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:9px;text-transform:uppercase;letter-spacing:0.5px;}
+.copy-btn{padding:5px 12px;border-radius:5px;border:1px solid var(--border);background:var(--surface);font-family:var(--sans);font-size:11.5px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all 0.15s;}
+.copy-btn:hover{background:var(--cream-150);color:var(--text);}
+.gen-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;gap:14px;color:var(--text-secondary);}
+.gen-overlay .spinner.dark{width:22px;height:22px;border-width:3px;}
+.gen-overlay p{font-size:13px;}
+
+/* Brief content reuse in debrief output */
+.brief-content{line-height:1.68;}
+.brief-content h1{font-size:17px;font-weight:700;margin-bottom:14px;letter-spacing:-0.3px;}
+.brief-content h2{font-size:13px;font-weight:700;margin-top:18px;margin-bottom:7px;color:var(--accent);}
+.brief-content h3{font-size:12px;font-weight:600;margin-top:12px;margin-bottom:3px;color:var(--text-secondary);}
+.brief-content p{margin-bottom:8px;font-size:13px;}
+.brief-content ul{margin-left:18px;margin-bottom:8px;}
+.brief-content li{margin-bottom:3px;font-size:13px;}
+.brief-content strong{font-weight:600;}
+.brief-content code{font-family:var(--mono);font-size:11.5px;background:var(--cream-150);padding:1px 5px;border-radius:3px;color:var(--accent);}
 </style>
 </head>
 <body>
@@ -220,31 +269,31 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="logo">
-        <div class="logo-mark" style="width:38px;height:38px;background:linear-gradient(135deg,#342e26,#1e1a14);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(30,26,20,0.3);position:relative;overflow:hidden;">
-          <svg viewBox="0 0 38 38" width="38" height="38" style="position:absolute;top:0;left:0;" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="19" cy="19" r="12" fill="none" stroke="#b5703a" stroke-width="0.5" opacity="0.2"/>
-            <circle cx="19" cy="19" r="7" fill="none" stroke="#b5703a" stroke-width="0.4" opacity="0.15"/>
-            <line x1="19" y1="4" x2="19" y2="34" stroke="#b5703a" stroke-width="0.3" opacity="0.1"/>
-            <line x1="4" y1="19" x2="34" y2="19" stroke="#b5703a" stroke-width="0.3" opacity="0.1"/>
+        <div class="logo-mark" style="width:36px;height:36px;background:linear-gradient(135deg,#342e26,#1e1a14);border-radius:9px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(30,26,20,0.3);position:relative;overflow:hidden;">
+          <svg viewBox="0 0 36 36" width="36" height="36" style="position:absolute;top:0;left:0;" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="18" r="11" fill="none" stroke="#b5703a" stroke-width="0.5" opacity="0.2"/>
+            <circle cx="18" cy="18" r="6.5" fill="none" stroke="#b5703a" stroke-width="0.4" opacity="0.15"/>
+            <line x1="18" y1="4" x2="18" y2="32" stroke="#b5703a" stroke-width="0.3" opacity="0.1"/>
+            <line x1="4" y1="18" x2="32" y2="18" stroke="#b5703a" stroke-width="0.3" opacity="0.1"/>
           </svg>
-          <span style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:18px;color:#b5703a;letter-spacing:-1px;position:relative;z-index:1;">D</span>
+          <span style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:17px;color:#b5703a;letter-spacing:-1px;position:relative;z-index:1;">D</span>
         </div>
         <div>
           <div class="logo-text">Doss</div>
           <div class="logo-sub">Daily Dossier</div>
         </div>
         <button class="settings-toggle" id="settingsBtn" title="Settings">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
         </button>
       </div>
     </div>
 
     <div class="tz-bar" id="tzBar">
       <div class="tz-picker" id="tzPicker" onclick="toggleTzDropdown()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/></svg>
         <span class="tz-picker-label" id="tzLabel"></span>
         <span class="tz-picker-offset" id="tzOffset"></span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
       </div>
       <div class="tz-dropdown" id="tzDropdown">
         <input class="tz-search" id="tzSearch" placeholder="Search city or timezone…" autocomplete="off">
@@ -254,24 +303,23 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
 
     <div class="auth-bar">
       <button class="google-btn" id="googleBtn" onclick="handleGoogleAuth()">
-        <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
         Sign in with Google
       </button>
-      <div class="api-bar" id="apiBar" style="margin-top:8px;">
+      <div class="api-bar" id="apiBar">
         <div class="api-dot"></div>
         <label>API</label>
-        <input type="password" class="api-input" id="apiKey" placeholder="sk-ant-..." autocomplete="off">
+        <input type="password" class="api-input" id="apiKey" placeholder="sk-ant-…" autocomplete="off">
       </div>
     </div>
 
     <div class="settings-panel" id="settingsPanel">
       <label>Brief Template <span class="save-indicator" id="briefSaved">Saved ✓</span></label>
       <textarea class="settings-textarea" id="briefTemplate" placeholder="Describe what you want in your briefs. Example: Give me who I'm meeting with their LinkedIn context, a company snapshot, 3 discovery questions, and the #1 landmine to watch for."></textarea>
-      <div class="settings-hint">What Doss includes in every brief. Leave blank for the full default dossier.</div>
-
-      <label>Debrief &amp; Email Template <span class="save-indicator" id="debriefSaved">Saved ✓</span></label>
-      <textarea class="settings-textarea" id="debriefTemplate" placeholder="Describe how you want debriefs and follow-up emails. Example: Keep the email to 3-4 sentences, mirror the prospect's words, end with a specific next step tied to a date. No formal sign-offs."></textarea>
-      <div class="settings-hint">Controls debrief output and follow-up email voice. Leave blank for default.</div>
+      <div class="settings-hint">Leave blank for the full default dossier.</div>
+      <label>Debrief Template <span class="save-indicator" id="debriefSaved">Saved ✓</span></label>
+      <textarea class="settings-textarea" id="debriefTemplate" placeholder="Describe how you want debriefs. Example: Keep the follow-up email to 3-4 sentences, mirror the prospect's words, end with a specific next step."></textarea>
+      <div class="settings-hint">Controls debrief output and follow-up email voice.</div>
     </div>
 
     <div class="date-bar">
@@ -280,9 +328,9 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
         <div class="date-sub" id="dateSub"></div>
       </div>
       <div class="day-nav">
-        <button id="prevDay"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <button id="todayBtn" style="width:auto;padding:0 8px;font-size:11px;font-weight:600;">Today</button>
-        <button id="nextDay"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+        <button id="prevDay"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <button id="todayBtn" style="width:auto;padding:0 7px;font-size:10.5px;font-weight:600;">Today</button>
+        <button id="nextDay"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
       </div>
     </div>
 
@@ -291,7 +339,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
       <span class="meeting-count" id="meetingCount">—</span>
     </div>
     <div class="meeting-list" id="meetingList">
-      <div style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px;">Sign in with Google to load your calendar.</div>
+      <div style="padding:36px 18px;text-align:center;color:var(--text-muted);font-size:13px;">Sign in with Google to load your calendar.</div>
     </div>
     <div class="load-bar">
       <button class="add-meeting-btn" id="addBtn">+ Add Meeting Manually</button>
@@ -307,416 +355,225 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
   </div>
 </div>
 
-<!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-
 <script>
-const GOOGLE_CLIENT_ID = '545043452179-k57aahlhjd5o8u2h8ehpsoftvi1ian8r.apps.googleusercontent.com';
-const CALENDAR_SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+const GOOGLE_CLIENT_ID='545043452179-k57aahlhjd5o8u2h8ehpsoftvi1ian8r.apps.googleusercontent.com';
+const CALENDAR_SCOPES='https://www.googleapis.com/auth/calendar.readonly';
 
-const STATE = {
-  accessToken: null,
-  orgDomain: '',
-  dayCache: {},       // dateKey -> [{meeting}]
-  activeMeetingId: null,
-  activeTab: 'brief',
-  currentDate: new Date(),
-  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  briefs: {},
-  chats: {},
-  debriefs: {},
-  generating: {},
-  model: 'claude-sonnet-4-20250514',
-  briefTemplate: localStorage.getItem('doss_template') || '',
-  debriefTemplate: localStorage.getItem('doss_debrief_template') || '',
+const STATE={
+  accessToken:null,orgDomain:'',dayCache:{},
+  activeMeetingId:null,activeTab:'brief',currentDate:new Date(),
+  timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
+  briefs:{},debriefs:{},generating:{},
+  model:'claude-sonnet-4-20250514',
+  briefTemplate:localStorage.getItem('doss_template')||'',
+  debriefTemplate:localStorage.getItem('doss_debrief_template')||'',
 };
 
-// ============================================================
-// STATE PERSISTENCE
-// ============================================================
-function saveState() {
-  try {
-    localStorage.setItem('doss_briefs', JSON.stringify(STATE.briefs));
-    localStorage.setItem('doss_chats', JSON.stringify(STATE.chats));
-    localStorage.setItem('doss_debriefs', JSON.stringify(STATE.debriefs));
-  } catch(e) { console.warn('State save failed:', e); }
-}
-
-function loadState() {
-  try {
-    const briefs = localStorage.getItem('doss_briefs');
-    const chats = localStorage.getItem('doss_chats');
-    const debriefs = localStorage.getItem('doss_debriefs');
-    if (briefs) STATE.briefs = JSON.parse(briefs);
-    if (chats) STATE.chats = JSON.parse(chats);
-    if (debriefs) STATE.debriefs = JSON.parse(debriefs);
-  } catch(e) { console.warn('State load failed:', e); }
-}
-
+function saveState(){try{localStorage.setItem('doss_briefs',JSON.stringify(STATE.briefs));localStorage.setItem('doss_debriefs',JSON.stringify(STATE.debriefs));}catch(e){}}
+function loadState(){try{const b=localStorage.getItem('doss_briefs');const d=localStorage.getItem('doss_debriefs');if(b)STATE.briefs=JSON.parse(b);if(d)STATE.debriefs=JSON.parse(d);}catch(e){}}
 loadState();
 
-// ============================================================
-// GOOGLE AUTH — OAuth 2.0 with token client
-// ============================================================
+// ── GOOGLE AUTH ──
 let tokenClient;
-
-function setGoogleSignedIn(token) {
-  STATE.accessToken = token;
-  const btn = document.getElementById('googleBtn');
+function setGoogleSignedIn(token){
+  STATE.accessToken=token;
+  const btn=document.getElementById('googleBtn');
   btn.classList.add('signed-in');
-  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> Calendar Connected';
+  btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> Calendar Connected';
 }
-
-function initGoogleAuth() {
-  // Wait for GSI library to load
-  if (typeof google === 'undefined' || !google.accounts) {
-    setTimeout(initGoogleAuth, 200);
-    return;
-  }
-
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CLIENT_ID,
-    scope: CALENDAR_SCOPES,
-    callback: (response) => {
-      if (response.access_token) {
-        // Persist token with expiry (tokens last ~1hr, store with 5min buffer)
-        const expiry = Date.now() + (55 * 60 * 1000);
-        localStorage.setItem('doss_gtoken', JSON.stringify({ token: response.access_token, expiry }));
+function initGoogleAuth(){
+  if(typeof google==='undefined'||!google.accounts){setTimeout(initGoogleAuth,200);return;}
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:GOOGLE_CLIENT_ID,scope:CALENDAR_SCOPES,
+    callback:(response)=>{
+      if(response.access_token){
+        const expiry=Date.now()+(55*60*1000);
+        localStorage.setItem('doss_gtoken',JSON.stringify({token:response.access_token,expiry}));
         setGoogleSignedIn(response.access_token);
-        loadCurrentDay();
-        backgroundLoadWeek();
+        loadCurrentDay();backgroundLoadWeek();
       }
     },
   });
+  try{
+    const stored=JSON.parse(localStorage.getItem('doss_gtoken')||'null');
+    if(stored&&stored.token&&stored.expiry>Date.now()){setGoogleSignedIn(stored.token);loadCurrentDay();backgroundLoadWeek();return;}
+  }catch(e){}
+  setTimeout(()=>{if(!STATE.accessToken&&tokenClient)tokenClient.requestAccessToken({prompt:''});},500);
+}
+function handleGoogleAuth(){
+  if(STATE.accessToken)return;
+  if(!tokenClient){alert('Google auth not ready yet. Try again in a moment.');return;}
+  tokenClient.requestAccessToken({prompt:'consent'});
+}
 
-  // Check for a persisted, still-valid token
-  try {
-    const stored = JSON.parse(localStorage.getItem('doss_gtoken') || 'null');
-    if (stored && stored.token && stored.expiry > Date.now()) {
-      // Token is still valid — restore session immediately, no prompt
-      setGoogleSignedIn(stored.token);
-      loadCurrentDay();
-      backgroundLoadWeek();
-      return;
+// ── CALENDAR ──
+async function fetchCalendarEvents(date){
+  if(!STATE.accessToken)return[];
+  const s=new Date(date);s.setHours(0,0,0,0);
+  const e=new Date(date);e.setHours(23,59,59,999);
+  const params=new URLSearchParams({timeMin:s.toISOString(),timeMax:e.toISOString(),singleEvents:'true',orderBy:'startTime',maxResults:'50',timeZone:STATE.timezone});
+  try{
+    const res=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,{headers:{Authorization:`Bearer ${STATE.accessToken}`}});
+    if(res.status===401){
+      STATE.accessToken=null;localStorage.removeItem('doss_gtoken');
+      const btn=document.getElementById('googleBtn');btn.classList.remove('signed-in');
+      btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Sign in with Google';
+      if(tokenClient)tokenClient.requestAccessToken({prompt:''});return[];
     }
-  } catch(e) { /* ignore corrupt storage */ }
-
-  // No valid stored token — silently attempt re-auth (works if user has
-  // previously granted access; shows no popup if Google session is active)
-  setTimeout(() => {
-    if (!STATE.accessToken && tokenClient) {
-      tokenClient.requestAccessToken({ prompt: '' });
-    }
-  }, 500);
+    const data=await res.json();
+    return(data.items||[]).map(ev=>({id:ev.id,title:ev.summary||'Untitled',startTime:ev.start?.dateTime||ev.start?.date,endTime:ev.end?.dateTime||ev.end?.date,attendees:(ev.attendees||[]).map(a=>({name:a.displayName||a.email,email:a.email})),location:ev.location||null}));
+  }catch(err){console.error('Calendar fetch error:',err);return[];}
 }
 
-function handleGoogleAuth() {
-  if (STATE.accessToken) return; // Already signed in
-  if (!tokenClient) { alert('Google auth not ready yet. Try again in a moment.'); return; }
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+// ── FILTERING ──
+function emailDomain(email){if(!email||!email.includes('@'))return'';return email.split('@')[1].toLowerCase();}
+function detectOrgDomain(events){
+  const counts={};
+  events.forEach(ev=>{(ev.attendees||[]).forEach(a=>{const d=emailDomain(a.email);if(d&&!d.includes('gmail.com')&&!d.includes('googlemail.com')&&!d.includes('resource.calendar.google.com'))counts[d]=(counts[d]||0)+1;});});
+  let best='',max=0;Object.entries(counts).forEach(([d,c])=>{if(c>max){best=d;max=c;}});return best;
+}
+function isExternal(meeting,orgDomain){
+  const att=meeting.attendees||[];if(att.length<=1)return false;if(!orgDomain)return true;
+  return att.some(a=>{const d=emailDomain(a.email);return d&&d!==orgDomain&&!d.includes('resource.calendar.google.com');});
 }
 
-// ============================================================
-// GOOGLE CALENDAR API — direct REST, instant
-// ============================================================
-async function fetchCalendarEvents(date) {
-  if (!STATE.accessToken) return [];
+// ── LOAD & CACHE ──
+async function loadDay(date){
+  const key=dateKey(date);if(STATE.dayCache[key])return STATE.dayCache[key];
+  const allEvents=await fetchCalendarEvents(date);
+  if(!STATE.orgDomain&&allEvents.length>0)STATE.orgDomain=detectOrgDomain(allEvents);
+  const external=allEvents.filter(m=>isExternal(m,STATE.orgDomain));
+  external.sort((a,b)=>new Date(a.startTime)-new Date(b.startTime));
+  STATE.dayCache[key]=external;return external;
+}
+async function loadCurrentDay(){
+  const list=document.getElementById('meetingList');
+  list.innerHTML='<div style="padding:18px;text-align:center;color:var(--text-muted);font-size:13px;"><div class="spinner dark" style="margin:0 auto 8px;"></div>Loading…</div>';
+  await loadDay(STATE.currentDate);renderMeetingList();updateDateBar();
+}
+async function backgroundLoadWeek(){
+  const dow=STATE.currentDate.getDay();
+  const monday=new Date(STATE.currentDate);monday.setDate(STATE.currentDate.getDate()-(dow===0?6:dow-1));
+  const days=Array.from({length:5},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);return d;}).filter(d=>!STATE.dayCache[dateKey(d)]);
+  await Promise.all(days.map(async d=>{await loadDay(d);if(dateKey(STATE.currentDate)===dateKey(d))renderMeetingList();}));
+}
+function getCurrentMeetings(){return STATE.dayCache[dateKey(STATE.currentDate)]||[];}
+function dateKey(date){return new Intl.DateTimeFormat('en-CA',{timeZone:STATE.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(date);}
 
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0,0,0,0);
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23,59,59,999);
-
-  const params = new URLSearchParams({
-    timeMin: startOfDay.toISOString(),
-    timeMax: endOfDay.toISOString(),
-    singleEvents: 'true',
-    orderBy: 'startTime',
-    maxResults: '50',
-    timeZone: STATE.timezone,
-  });
-
-  try {
-    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`, {
-      headers: { Authorization: `Bearer ${STATE.accessToken}` }
-    });
-
-    if (res.status === 401) {
-      // Token expired — clear storage and re-auth
-      STATE.accessToken = null;
-      localStorage.removeItem('doss_gtoken');
-      const btn = document.getElementById('googleBtn');
-      btn.classList.remove('signed-in');
-      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Sign in with Google';
-      // Try silent re-auth before bothering the user
-      if (tokenClient) tokenClient.requestAccessToken({ prompt: '' });
-      return [];
-    }
-
-    const data = await res.json();
-    return (data.items || []).map(ev => ({
-      id: ev.id,
-      title: ev.summary || 'Untitled',
-      startTime: ev.start?.dateTime || ev.start?.date,
-      endTime: ev.end?.dateTime || ev.end?.date,
-      attendees: (ev.attendees || []).map(a => ({ name: a.displayName || a.email, email: a.email })),
-      location: ev.location || null,
-    }));
-  } catch (err) {
-    console.error('Calendar fetch error:', err);
-    return [];
-  }
+// ── TIMEZONE ──
+const TIMEZONES=['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Anchorage','Pacific/Honolulu','America/Phoenix','America/Indiana/Indianapolis','America/Toronto','America/Vancouver','America/Mexico_City','America/Sao_Paulo','America/Argentina/Buenos_Aires','Europe/London','Europe/Paris','Europe/Berlin','Europe/Madrid','Europe/Rome','Europe/Amsterdam','Europe/Stockholm','Europe/Moscow','Europe/Istanbul','Africa/Cairo','Africa/Johannesburg','Africa/Lagos','Asia/Dubai','Asia/Kolkata','Asia/Bangkok','Asia/Singapore','Asia/Hong_Kong','Asia/Shanghai','Asia/Tokyo','Asia/Seoul','Asia/Jakarta','Australia/Sydney','Australia/Melbourne','Australia/Perth','Australia/Brisbane','Pacific/Auckland','Pacific/Fiji','UTC'];
+function initTimezones(){
+  updateTzDisplay();renderTzList('');
+  document.getElementById('tzSearch').addEventListener('input',e=>renderTzList(e.target.value));
+  document.addEventListener('click',e=>{if(!document.getElementById('tzBar').contains(e.target))document.getElementById('tzDropdown').classList.remove('open');});
+}
+function toggleTzDropdown(){const dd=document.getElementById('tzDropdown');dd.classList.toggle('open');if(dd.classList.contains('open')){const s=document.getElementById('tzSearch');s.value='';s.focus();renderTzList('');}}
+function getTzCity(tz){return tz.split('/').pop().replace(/_/g,' ');}
+function getTzRegion(tz){const p=tz.split('/');return p.length>1?p[0]:'';}
+function getTzOffsetStr(tz){try{return new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'short'}).formatToParts(new Date()).find(p=>p.type==='timeZoneName')?.value||'';}catch{return'';}}
+function updateTzDisplay(){document.getElementById('tzLabel').textContent=getTzCity(STATE.timezone);document.getElementById('tzOffset').textContent=getTzOffsetStr(STATE.timezone);}
+function renderTzList(filter){
+  const list=document.getElementById('tzList'),q=filter.toLowerCase();
+  const filtered=TIMEZONES.filter(tz=>{const city=getTzCity(tz).toLowerCase(),region=getTzRegion(tz).toLowerCase(),full=tz.toLowerCase().replace(/_/g,' ');return!q||city.includes(q)||region.includes(q)||full.includes(q);});
+  list.innerHTML=filtered.map(tz=>`<div class="tz-option ${tz===STATE.timezone?'active':''}" data-tz="${tz}"><span><span class="tz-option-city">${getTzCity(tz)}</span><span class="tz-option-region">${getTzRegion(tz)}</span></span><span class="tz-option-offset">${getTzOffsetStr(tz)}</span></div>`).join('');
+  list.querySelectorAll('.tz-option').forEach(opt=>{opt.addEventListener('click',()=>{STATE.timezone=opt.dataset.tz;updateTzDisplay();document.getElementById('tzDropdown').classList.remove('open');renderMeetingList();if(STATE.activeMeetingId)renderDetail();});});
 }
 
-// ============================================================
-// EXTERNAL FILTERING — client-side, instant
-// ============================================================
-function emailDomain(email) {
-  if (!email || !email.includes('@')) return '';
-  return email.split('@')[1].toLowerCase();
-}
+// ── DATE ──
+function formatDate(d){return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:STATE.timezone});}
+function formatDateShort(d){return d.toLocaleDateString('en-US',{year:'numeric',timeZone:STATE.timezone});}
+function formatTime(iso){if(!iso)return'';return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:STATE.timezone});}
+function formatTimeRange(s,e){return`${formatTime(s)} – ${formatTime(e)}`;}
+function getTzAbbr(){try{return new Intl.DateTimeFormat('en-US',{timeZone:STATE.timezone,timeZoneName:'short'}).formatToParts(new Date()).find(p=>p.type==='timeZoneName')?.value||STATE.timezone;}catch{return STATE.timezone;}}
+function updateDateBar(){document.getElementById('dateLabel').textContent=formatDate(STATE.currentDate);document.getElementById('dateSub').textContent=formatDateShort(STATE.currentDate);}
 
-function detectOrgDomain(events) {
-  const counts = {};
-  events.forEach(ev => {
-    (ev.attendees || []).forEach(a => {
-      const d = emailDomain(a.email);
-      if (d && !d.includes('gmail.com') && !d.includes('googlemail.com') && !d.includes('resource.calendar.google.com')) {
-        counts[d] = (counts[d] || 0) + 1;
-      }
-    });
-  });
-  let best = '', max = 0;
-  Object.entries(counts).forEach(([d,c]) => { if (c > max) { best = d; max = c; } });
-  return best;
-}
-
-function isExternal(meeting, orgDomain) {
-  const attendees = meeting.attendees || [];
-  if (attendees.length <= 1) return false;
-  if (!orgDomain) return true;
-  return attendees.some(a => {
-    const d = emailDomain(a.email);
-    return d && d !== orgDomain && !d.includes('resource.calendar.google.com');
-  });
-}
-
-// ============================================================
-// LOAD & CACHE
-// ============================================================
-async function loadDay(date) {
-  const key = dateKey(date);
-  if (STATE.dayCache[key]) return STATE.dayCache[key];
-
-  const allEvents = await fetchCalendarEvents(date);
-
-  // Detect org domain if we haven't yet
-  if (!STATE.orgDomain && allEvents.length > 0) {
-    STATE.orgDomain = detectOrgDomain(allEvents);
-  }
-
-  const external = allEvents.filter(m => isExternal(m, STATE.orgDomain));
-  external.sort((a,b) => new Date(a.startTime) - new Date(b.startTime));
-  STATE.dayCache[key] = external;
-  return external;
-}
-
-async function loadCurrentDay() {
-  const list = document.getElementById('meetingList');
-  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;"><div class="spinner dark" style="margin:0 auto 8px;"></div>Loading…</div>';
-  await loadDay(STATE.currentDate);
-  renderMeetingList();
-  updateDateBar();
-}
-
-async function backgroundLoadWeek() {
-  const dow = STATE.currentDate.getDay();
-  const monday = new Date(STATE.currentDate);
-  monday.setDate(STATE.currentDate.getDate() - (dow === 0 ? 6 : dow - 1));
-  const days = Array.from({length: 5}, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
-  }).filter(d => !STATE.dayCache[dateKey(d)]);
-  // Load all days in parallel instead of sequentially
-  await Promise.all(days.map(async d => {
-    await loadDay(d);
-    if (dateKey(STATE.currentDate) === dateKey(d)) renderMeetingList();
-  }));
-}
-
-function getCurrentMeetings() {
-  return STATE.dayCache[dateKey(STATE.currentDate)] || [];
-}
-
-function dateKey(date) {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: STATE.timezone, year:'numeric', month:'2-digit', day:'2-digit' }).format(date);
-}
-
-// ============================================================
-// TIMEZONE
-// ============================================================
-const TIMEZONES = ['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Anchorage','Pacific/Honolulu','America/Phoenix','America/Indiana/Indianapolis','America/Toronto','America/Vancouver','America/Mexico_City','America/Sao_Paulo','America/Argentina/Buenos_Aires','Europe/London','Europe/Paris','Europe/Berlin','Europe/Madrid','Europe/Rome','Europe/Amsterdam','Europe/Stockholm','Europe/Moscow','Europe/Istanbul','Africa/Cairo','Africa/Johannesburg','Africa/Lagos','Asia/Dubai','Asia/Kolkata','Asia/Bangkok','Asia/Singapore','Asia/Hong_Kong','Asia/Shanghai','Asia/Tokyo','Asia/Seoul','Asia/Jakarta','Australia/Sydney','Australia/Melbourne','Australia/Perth','Australia/Brisbane','Pacific/Auckland','Pacific/Fiji','UTC'];
-
-function initTimezones() {
-  updateTzDisplay();
-  renderTzList('');
-  document.getElementById('tzSearch').addEventListener('input', e => renderTzList(e.target.value));
-  // Close dropdown on outside click
-  document.addEventListener('click', e => {
-    if (!document.getElementById('tzBar').contains(e.target)) {
-      document.getElementById('tzDropdown').classList.remove('open');
-    }
-  });
-}
-
-function toggleTzDropdown() {
-  const dd = document.getElementById('tzDropdown');
-  dd.classList.toggle('open');
-  if (dd.classList.contains('open')) {
-    const search = document.getElementById('tzSearch');
-    search.value = '';
-    search.focus();
-    renderTzList('');
-  }
-}
-
-function getTzCity(tz) {
-  return tz.split('/').pop().replace(/_/g, ' ');
-}
-
-function getTzRegion(tz) {
-  const parts = tz.split('/');
-  return parts.length > 1 ? parts[0] : '';
-}
-
-function getTzOffsetStr(tz) {
-  try {
-    return new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || '';
-  } catch { return ''; }
-}
-
-function updateTzDisplay() {
-  document.getElementById('tzLabel').textContent = getTzCity(STATE.timezone);
-  document.getElementById('tzOffset').textContent = getTzOffsetStr(STATE.timezone);
-}
-
-function renderTzList(filter) {
-  const list = document.getElementById('tzList');
-  const q = filter.toLowerCase();
-  const filtered = TIMEZONES.filter(tz => {
-    const city = getTzCity(tz).toLowerCase();
-    const region = getTzRegion(tz).toLowerCase();
-    const full = tz.toLowerCase().replace(/_/g, ' ');
-    return !q || city.includes(q) || region.includes(q) || full.includes(q);
-  });
-
-  list.innerHTML = filtered.map(tz => {
-    const isActive = tz === STATE.timezone;
-    return `<div class="tz-option ${isActive ? 'active' : ''}" data-tz="${tz}">
-      <span><span class="tz-option-city">${getTzCity(tz)}</span><span class="tz-option-region">${getTzRegion(tz)}</span></span>
-      <span class="tz-option-offset">${getTzOffsetStr(tz)}</span>
-    </div>`;
+// ── MEETING LIST ──
+function renderMeetingList(){
+  const list=document.getElementById('meetingList'),count=document.getElementById('meetingCount'),meetings=getCurrentMeetings();
+  if(!STATE.accessToken){list.innerHTML='<div style="padding:36px 18px;text-align:center;color:var(--text-muted);font-size:13px;">Sign in with Google to load your calendar.</div>';count.textContent='—';return;}
+  if(meetings.length===0){list.innerHTML='<div style="padding:36px 18px;text-align:center;color:var(--text-muted);font-size:13px;">No external calls this day.</div>';count.textContent='0';return;}
+  count.textContent=meetings.length;
+  const tz=getTzAbbr();
+  list.innerHTML=meetings.map(m=>{
+    const isActive=m.id===STATE.activeMeetingId,hasBrief=!!STATE.briefs[m.id],isGen=!!STATE.generating[m.id];
+    const sc=isGen?'status-generating':hasBrief?'status-ready':'status-none';
+    const ac=(m.attendees||[]).length;
+    return`<div class="meeting-card ${isActive?'active':''}" data-id="${m.id}"><div class="meeting-card-top"><span class="meeting-time">${formatTimeRange(m.startTime,m.endTime)} ${tz}</span><span class="meeting-status ${sc}"></span></div><div class="meeting-name">${esc(m.title)}</div><div class="meeting-meta">${ac} attendee${ac!==1?'s':''}</div></div>`;
   }).join('');
-
-  list.querySelectorAll('.tz-option').forEach(opt => {
-    opt.addEventListener('click', () => {
-      STATE.timezone = opt.dataset.tz;
-      updateTzDisplay();
-      document.getElementById('tzDropdown').classList.remove('open');
-      renderMeetingList();
-      if (STATE.activeMeetingId) renderDetail();
-    });
-  });
+  list.querySelectorAll('.meeting-card').forEach(card=>{card.addEventListener('click',()=>{STATE.activeMeetingId=card.dataset.id;STATE.activeTab='brief';renderMeetingList();renderDetail();});});
 }
 
-// ============================================================
-// DATE FORMATTING
-// ============================================================
-function formatDate(d) { return d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',timeZone:STATE.timezone}); }
-function formatDateShort(d) { return d.toLocaleDateString('en-US',{year:'numeric',timeZone:STATE.timezone}); }
-function formatTime(iso) { if(!iso) return ''; return new Date(iso).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZone:STATE.timezone}); }
-function formatTimeRange(s,e) { return `${formatTime(s)} – ${formatTime(e)}`; }
-function getTzAbbr() { try { return new Intl.DateTimeFormat('en-US',{timeZone:STATE.timezone,timeZoneName:'short'}).formatToParts(new Date()).find(p=>p.type==='timeZoneName')?.value||STATE.timezone; } catch { return STATE.timezone; } }
-
-function updateDateBar() {
-  document.getElementById('dateLabel').textContent = formatDate(STATE.currentDate);
-  document.getElementById('dateSub').textContent = formatDateShort(STATE.currentDate);
-}
-
-// ============================================================
-// RENDER MEETING LIST
-// ============================================================
-function renderMeetingList() {
-  const list = document.getElementById('meetingList');
-  const count = document.getElementById('meetingCount');
-  const meetings = getCurrentMeetings();
-
-  if (!STATE.accessToken) {
-    list.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px;">Sign in with Google to load your calendar.</div>';
-    count.textContent = '—';
-    return;
-  }
-  if (meetings.length === 0) {
-    list.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px;">No external calls this day.</div>';
-    count.textContent = '0';
-    return;
-  }
-
-  count.textContent = meetings.length;
-  const tz = getTzAbbr();
-
-  list.innerHTML = meetings.map(m => {
-    const isActive = m.id === STATE.activeMeetingId;
-    const hasBrief = !!STATE.briefs[m.id];
-    const isGen = !!STATE.generating[m.id];
-    const sc = isGen ? 'status-generating' : hasBrief ? 'status-ready' : 'status-none';
-    const ac = (m.attendees||[]).length;
-    return `<div class="meeting-card ${isActive?'active':''}" data-id="${m.id}">
-      <div class="meeting-card-top"><span class="meeting-time">${formatTimeRange(m.startTime,m.endTime)} ${tz}</span><span class="meeting-status ${sc}"></span></div>
-      <div class="meeting-name">${esc(m.title)}</div>
-      <div class="meeting-meta">${ac} attendee${ac!==1?'s':''}</div>
-    </div>`;
-  }).join('');
-
-  list.querySelectorAll('.meeting-card').forEach(card => {
-    card.addEventListener('click', () => { STATE.activeMeetingId = card.dataset.id; STATE.activeTab = 'brief'; renderMeetingList(); renderDetail(); });
-  });
-}
-
-// ============================================================
-// RENDER DETAIL / BRIEF / CHAT / DEBRIEF — same as before
-// ============================================================
-function renderDetail() {
-  const main = document.getElementById('mainPanel');
-  const meeting = getCurrentMeetings().find(m => m.id === STATE.activeMeetingId);
-  if (!meeting) { main.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier, strategize, or debrief.</p></div>`; return; }
-  const tz = getTzAbbr(), hasBrief = !!STATE.briefs[meeting.id], isGenBrief = STATE.generating[meeting.id]==='brief', isGenDebrief = STATE.generating[meeting.id]==='debrief';
-  const attendeeStr = (meeting.attendees||[]).map(a=>a.name||a.email).join(', ');
-  main.innerHTML = `<div class="detail-header"><div class="detail-header-top"><div class="detail-title">${esc(meeting.title)}</div><div class="detail-time">${formatTimeRange(meeting.startTime,meeting.endTime)} ${tz}</div></div><div class="detail-attendees">${attendeeStr||'No attendees'}</div></div>
-    <div class="tab-bar"><div class="tab ${STATE.activeTab==='brief'?'active':''}" data-tab="brief">Brief${hasBrief?'<span class="tab-dot"></span>':''}</div><div class="tab ${STATE.activeTab==='strategy'?'active':''}" data-tab="strategy">Strategy Chat</div><div class="tab ${STATE.activeTab==='debrief'?'active':''}" data-tab="debrief">Debrief</div></div>
+// ── RENDER DETAIL ──
+function renderDetail(){
+  const main=document.getElementById('mainPanel');
+  const meeting=getCurrentMeetings().find(m=>m.id===STATE.activeMeetingId);
+  if(!meeting){main.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier, or debrief after a call.</p></div>`;return;}
+  const tz=getTzAbbr(),hasBrief=!!STATE.briefs[meeting.id],isGenBrief=STATE.generating[meeting.id]==='brief',isGenDebrief=STATE.generating[meeting.id]==='debrief';
+  const attendeeStr=(meeting.attendees||[]).map(a=>a.name||a.email).join(', ');
+  main.innerHTML=`<div class="detail-header"><div class="detail-header-top"><div class="detail-title">${esc(meeting.title)}</div><div class="detail-time">${formatTimeRange(meeting.startTime,meeting.endTime)} ${tz}</div></div><div class="detail-attendees">${attendeeStr||'No attendees'}</div></div>
+    <div class="tab-bar"><div class="tab ${STATE.activeTab==='brief'?'active':''}" data-tab="brief">Brief${hasBrief?'<span class="tab-dot"></span>':''}</div><div class="tab ${STATE.activeTab==='debrief'?'active':''}" data-tab="debrief">Debrief</div></div>
     <div class="tab-content" id="tabContent"></div>`;
-  main.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { STATE.activeTab = t.dataset.tab; renderDetail(); }));
-  const content = document.getElementById('tabContent');
-  if (STATE.activeTab==='brief') renderBriefTab(content,meeting,hasBrief,isGenBrief);
-  else if (STATE.activeTab==='strategy') renderStrategyTab(content,meeting);
+  main.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{STATE.activeTab=t.dataset.tab;renderDetail();}));
+  const content=document.getElementById('tabContent');
+  content.classList.remove('brief-mode');
+  if(STATE.activeTab==='brief')renderBriefTab(content,meeting,hasBrief,isGenBrief);
   else renderDebriefTab(content,meeting,isGenDebrief);
 }
 
-function renderBriefTab(c,m,has,gen) {
-  if (gen) {
-    // Show streaming content if available
-    const partial = STATE.briefs[m.id] || '';
-    c.innerHTML = `<div class="brief-actions"><button class="gen-btn" disabled><span class="spinner"></span> Generating…</button></div><div class="brief-content" id="streamTarget">${partial || '<p style="color:var(--text-muted)">Researching attendees…</p>'}</div>`;
+// ── BRIEF TAB ──
+function renderBriefTab(c,m,has,gen){
+  c.classList.add('brief-mode');
+  if(gen){
+    c.innerHTML=`<div class="brief-toolbar"><button class="gen-btn" disabled><span class="spinner"></span> Generating…</button></div>
+      <div class="brief-layout">
+        <nav class="brief-toc-col" id="briefTocCol"><div class="toc-label">Sections</div><div class="toc-skeleton">${'<div class="toc-skel"></div>'.repeat(7)}</div></nav>
+        <div class="brief-paper-col"><div class="brief-paper" id="streamTarget"><p style="color:var(--text-muted);font-size:13px;">Researching attendees…</p></div></div>
+      </div>`;
     return;
   }
-  let h = `<div class="brief-actions">${!has?'<button class="gen-btn" id="genBriefBtn">Generate Dossier</button>':'<button class="gen-btn secondary" id="genBriefBtn">Regenerate</button><button class="gen-btn secondary" onclick="copyBrief()">Copy</button>'}</div>`;
-  h += has ? `<div class="brief-content">${STATE.briefs[m.id]}</div>` : `<div class="brief-empty"><div class="brief-empty-icon">🎯</div><h4>No dossier yet</h4><p>Hit Generate to research attendees and build your pre-call brief.</p></div>`;
-  c.innerHTML = h;
-  document.getElementById('genBriefBtn')?.addEventListener('click', () => generateBrief(m));
+  c.innerHTML=`<div class="brief-toolbar">${!has?'<button class="gen-btn" id="genBriefBtn">Generate Dossier</button>':`<button class="gen-btn secondary" id="genBriefBtn">↻ Regenerate</button><button class="gen-btn secondary" id="copyBriefBtn">Copy</button>`}</div>
+    ${has?`<div class="brief-layout"><nav class="brief-toc-col" id="briefTocCol"><div class="toc-label">Sections</div></nav><div class="brief-paper-col"><div class="brief-paper" id="briefPaper">${STATE.briefs[m.id]}</div></div></div>`
+    :`<div class="brief-layout"><nav class="brief-toc-col" id="briefTocCol"><div class="toc-label">Sections</div></nav><div class="brief-paper-col"><div class="brief-empty"><div class="brief-empty-icon">🎯</div><h4>No dossier yet</h4><p>Hit Generate to research attendees and build your pre-call brief.</p></div></div></div>`}`;
+  document.getElementById('genBriefBtn')?.addEventListener('click',()=>generateBrief(m));
+  document.getElementById('copyBriefBtn')?.addEventListener('click',copyBrief);
+  if(has)requestAnimationFrame(buildToc);
 }
 
-const DEFAULT_TEMPLATE = `You are Doss, an elite sales intelligence tool. Build a pre-call dossier.
+// ── BUILD TOC ──
+function buildToc(){
+  const paper=document.getElementById('briefPaper')||document.getElementById('streamTarget');
+  const tocCol=document.getElementById('briefTocCol');
+  if(!paper||!tocCol)return;
+  const headings=paper.querySelectorAll('h2');
+  if(headings.length===0)return;
+  headings.forEach((h,i)=>{h.id=`s${i}`;});
+  const items=Array.from(headings).map((h,i)=>`<a class="toc-item" data-target="s${i}">${h.textContent}</a>`).join('');
+  tocCol.innerHTML=`<div class="toc-label">Sections</div>${items}`;
+  const scrollCol=paper.closest('.brief-paper-col');
+  tocCol.querySelectorAll('.toc-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+      const target=document.getElementById(item.dataset.target);
+      if(target&&scrollCol)scrollCol.scrollTo({top:target.offsetTop-20,behavior:'smooth'});
+    });
+  });
+  if(!scrollCol)return;
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        tocCol.querySelectorAll('.toc-item').forEach(t=>t.classList.remove('active'));
+        const active=tocCol.querySelector(`[data-target="${entry.target.id}"]`);
+        if(active)active.classList.add('active');
+      }
+    });
+  },{root:scrollCol,threshold:0,rootMargin:'0px 0px -75% 0px'});
+  headings.forEach(h=>observer.observe(h));
+  // Activate first
+  const first=tocCol.querySelector('.toc-item');if(first)first.classList.add('active');
+}
+
+// ── GENERATE BRIEF ──
+const DEFAULT_TEMPLATE=`You are Doss, an elite sales intelligence tool. Build a pre-call dossier.
 
 IMPORTANT — ATTENDEE DATA:
 - Google Calendar often mismatches display names and email addresses. Do NOT assume a display name belongs to the email shown next to it.
@@ -751,175 +608,68 @@ One clear, specific outcome.
 
 Research deeply with web search. Be specific — names, numbers, real context. No filler. Direct, warm tone. Markdown.`;
 
-function getBriefSystemPrompt() {
-  const custom = STATE.briefTemplate.trim();
-  if (!custom) return DEFAULT_TEMPLATE;
-  return `You are Doss, a sales intelligence tool. Build a pre-call brief following the user's instructions below. Research deeply with web search. Be specific. No filler. Direct, warm tone. Use markdown formatting.\n\nBRIEF FORMAT INSTRUCTIONS:\n${custom}`;
-}
+function getBriefSystemPrompt(){const c=STATE.briefTemplate.trim();if(!c)return DEFAULT_TEMPLATE;return`You are Doss, a sales intelligence tool. Build a pre-call brief following the user's instructions below. Research deeply with web search. Be specific. No filler. Direct, warm tone. Use markdown formatting.\n\nBRIEF FORMAT INSTRUCTIONS:\n${c}`;}
 
-async function generateBrief(m) {
-  const apiKey = document.getElementById('apiKey').value.trim();
-  if (!apiKey) { alert('Enter your Anthropic API key.'); return; }
-
-  STATE.generating[m.id] = 'brief';
-  STATE.briefs[m.id] = '';
-  renderMeetingList();
-  renderDetail();
-
-  const orgDomain = STATE.orgDomain || 'getaleph.com';
-  const externalAttendees = (m.attendees||[]).filter(a => {
-    const domain = a.email?.includes('@') ? a.email.split('@')[1].toLowerCase() : '';
-    return domain && domain !== orgDomain && !domain.includes('resource.calendar.google.com');
-  });
-  const internalNames = (m.attendees||[]).filter(a => {
-    const domain = a.email?.includes('@') ? a.email.split('@')[1].toLowerCase() : '';
-    return domain === orgDomain;
-  }).map(a => a.name || a.email).join(', ');
-
-  const attendeeInfo = externalAttendees.map(a => {
-    const name = a.name || 'Unknown';
-    const email = a.email || '';
-    const domain = email.includes('@') ? email.split('@')[1] : '';
-    return `- Name: ${name} | Email: ${email} | Company domain: ${domain}`;
-  }).join('\n') || '- No external attendee details available';
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'x-api-key': apiKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-      body: JSON.stringify({
-        model: STATE.model,
-        max_tokens: 4000,
-        stream: true,
-        system: getBriefSystemPrompt(),
-        messages: [{ role:'user', content:`Build a dossier for this meeting. ONLY research the EXTERNAL attendees listed below. Do NOT research or mention anyone from my company (${orgDomain}).
-
-Meeting: ${m.title}
-Time: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}
-${m.location?'Location: '+m.location:''}
-
-EXTERNAL ATTENDEES (research these people):
-${attendeeInfo}
-
-${internalNames ? 'Internal team joining (SKIP these): ' + internalNames : ''}
-
-Research each external attendee and their company thoroughly.` }],
-        tools: [{ type:'web_search_20250305', name:'web_search' }]
-      })
+async function generateBrief(m){
+  const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter your Anthropic API key.');return;}
+  STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderDetail();
+  const orgDomain=STATE.orgDomain||'';
+  const externalAttendees=(m.attendees||[]).filter(a=>{const d=a.email?.includes('@')?a.email.split('@')[1].toLowerCase():'';return d&&d!==orgDomain&&!d.includes('resource.calendar.google.com');});
+  const internalNames=(m.attendees||[]).filter(a=>{const d=a.email?.includes('@')?a.email.split('@')[1].toLowerCase():'';return d===orgDomain;}).map(a=>a.name||a.email).join(', ');
+  const attendeeInfo=externalAttendees.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''} | Company domain: ${a.email?.includes('@')?a.email.split('@')[1]:''}`).join('\n')||'- No external attendee details available';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:STATE.model,max_tokens:4000,stream:true,system:getBriefSystemPrompt(),
+        messages:[{role:'user',content:`Build a dossier for this meeting. ONLY research the EXTERNAL attendees listed below. Do NOT research or mention anyone from my company (${orgDomain||'my company'}).\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n${m.location?'Location: '+m.location:''}\n\nEXTERNAL ATTENDEES (research these people):\n${attendeeInfo}\n\n${internalNames?'Internal team joining (SKIP these): '+internalNames:''}\n\nResearch each external attendee and their company thoroughly.`}],
+        tools:[{type:'web_search_20250305',name:'web_search'}]})
     });
-
-    // Check if response is actually a stream or an error
-    const contentType = res.headers.get('content-type') || '';
-    if (!res.ok || !contentType.includes('text/event-stream')) {
-      // Non-stream response — read as JSON
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message || 'API error');
-      const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
-      if (text) STATE.briefs[m.id] = markdownToHtml(text);
-      else STATE.briefs[m.id] = '<p style="color:var(--text-muted)">No content returned. Try again.</p>';
-    } else {
-      // Stream response
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let rawText = '';
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          try {
-            const event = JSON.parse(jsonStr);
-            if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
-              rawText += event.delta.text;
-              STATE.briefs[m.id] = markdownToHtml(rawText);
-              const target = document.getElementById('streamTarget');
-              if (target) target.innerHTML = STATE.briefs[m.id];
+    const contentType=res.headers.get('content-type')||'';
+    if(!res.ok||!contentType.includes('text/event-stream')){
+      const data=await res.json();if(data.error)throw new Error(data.error.message||'API error');
+      const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
+      STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned. Try again.</p>';
+    }else{
+      const reader=res.body.getReader(),decoder=new TextDecoder();let rawText='',buffer='';
+      while(true){
+        const{done,value}=await reader.read();if(done)break;
+        buffer+=decoder.decode(value,{stream:true});
+        const lines=buffer.split('\n');buffer=lines.pop()||'';
+        for(const line of lines){
+          if(!line.startsWith('data: '))continue;
+          const jsonStr=line.slice(6).trim();if(jsonStr==='[DONE]')continue;
+          try{
+            const event=JSON.parse(jsonStr);
+            if(event.type==='content_block_delta'&&event.delta?.type==='text_delta'){
+              rawText+=event.delta.text;
+              STATE.briefs[m.id]=markdownToHtml(rawText);
+              const target=document.getElementById('streamTarget');
+              if(target){target.innerHTML=STATE.briefs[m.id];buildToc();}
             }
-            // Handle errors in stream
-            if (event.type === 'error') {
-              throw new Error(event.error?.message || 'Stream error');
-            }
-          } catch (parseErr) {
-            if (parseErr.message && parseErr.message !== 'Stream error') continue; // skip parse errors
-            throw parseErr;
-          }
+            if(event.type==='error')throw new Error(event.error?.message||'Stream error');
+          }catch(parseErr){if(parseErr.message&&parseErr.message!=='Stream error')continue;throw parseErr;}
         }
       }
-
-      if (rawText) STATE.briefs[m.id] = markdownToHtml(rawText);
-      else if (!STATE.briefs[m.id]) STATE.briefs[m.id] = '<p style="color:var(--text-muted)">Brief generated but no text returned. The model may have only performed web searches. Try regenerating.</p>';
+      if(rawText)STATE.briefs[m.id]=markdownToHtml(rawText);
+      else if(!STATE.briefs[m.id])STATE.briefs[m.id]='<p style="color:var(--text-muted)">Brief generated but no text returned. Try regenerating.</p>';
     }
-
-  } catch(e) {
-    console.error(e);
-    STATE.briefs[m.id] = '<p style="color:var(--red)">Error generating brief. Check console.</p>';
-  }
-
-  delete STATE.generating[m.id];
-  saveState();
-  renderMeetingList();
-  renderDetail();
+  }catch(e){console.error(e);STATE.briefs[m.id]='<p style="color:var(--red)">Error generating brief. Check console.</p>';}
+  delete STATE.generating[m.id];saveState();renderMeetingList();renderDetail();
 }
+function copyBrief(){const el=document.querySelector('.brief-paper');if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();}}
 
-function copyBrief() { const el=document.querySelector('.brief-content'); if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();} }
-
-function renderStrategyTab(c,m) {
-  if(!STATE.chats[m.id]) STATE.chats[m.id]=[];
-  const msgs = STATE.chats[m.id];
-  let mh = msgs.length===0 ? `<div style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px;"><div style="font-size:20px;margin-bottom:8px;">💬</div>Ask anything — objections, pricing, psychology, competitive positioning.</div>` :
-    msgs.map(m=>`<div class="chat-msg"><div class="chat-avatar ${m.role}">${m.role==='user'?'W':'D'}</div><div class="chat-bubble"><div class="chat-bubble-name">${m.role==='user'?'You':'Doss'}</div><div class="chat-bubble-text">${m.role==='assistant'?markdownToHtml(m.content):esc(m.content)}</div></div></div>`).join('');
-  c.innerHTML = `<div class="chat-container"><div class="chat-messages" id="chatMessages">${mh}</div><div class="chat-input-bar"><textarea class="chat-input" id="chatInput" placeholder="Ask Doss…" rows="1"></textarea><button class="chat-send" id="chatSend">Send</button></div></div>`;
-  document.getElementById('chatMessages').scrollTop = 99999;
-  const inp = document.getElementById('chatInput');
-  inp.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat(m);} });
-  inp.addEventListener('input', () => { inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,120)+'px'; });
-  document.getElementById('chatSend').addEventListener('click', () => sendChat(m));
-}
-
-async function sendChat(m) {
-  const inp=document.getElementById('chatInput'), msg=inp.value.trim(); if(!msg) return;
-  const apiKey=document.getElementById('apiKey').value.trim(); if(!apiKey){alert('Enter API key.');return;}
-  STATE.chats[m.id].push({role:'user',content:msg}); inp.value=''; inp.style.height='auto';
-  renderStrategyTab(document.getElementById('tabContent'),m);
-  // Trim brief to plain text capped at 800 chars — avoid paying for full HTML on every message
-  const briefText = STATE.briefs[m.id] ? htmlToText(STATE.briefs[m.id]).trim().slice(0, 800) : '';
-  const bc = briefText ? `Dossier:\n${briefText}` : 'No dossier yet.';
-  const ai = (m.attendees||[]).map(a=>`${a.name||'?'} (${a.email||''})`).join(', ');
-  const userName = localStorage.getItem('doss_username') || 'the AE';
-  const userOrg = localStorage.getItem('doss_orgdomain') || 'your company';
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,system:`You are Doss, sales advisor for ${userName} at ${userOrg}. Meeting: ${m.title}. Attendees: ${ai}. ${bc}\nBe direct. No fluff.`,
-        messages:STATE.chats[m.id].map(x=>({role:x.role==='user'?'user':'assistant',content:x.content}))})
-    });
-    const data = await res.json();
-    STATE.chats[m.id].push({role:'assistant',content:(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n')});
-    saveState();
-  } catch(e) { STATE.chats[m.id].push({role:'assistant',content:'Error. Check API key.'}); }
-  renderStrategyTab(document.getElementById('tabContent'),m);
-}
-
-function renderDebriefTab(c,m,gen) {
-  if(!STATE.debriefs[m.id]) STATE.debriefs[m.id]={transcript:'',output:''};
+// ── DEBRIEF TAB ──
+function renderDebriefTab(c,m,gen){
+  if(!STATE.debriefs[m.id])STATE.debriefs[m.id]={transcript:'',output:''};
   const db=STATE.debriefs[m.id];
   if(gen){c.innerHTML=`<div class="gen-overlay"><div class="spinner dark"></div><p>Analyzing and drafting follow-up…</p></div>`;return;}
-  let h=`<div class="debrief-section"><label>Paste Call Transcript or Notes</label><textarea class="debrief-textarea" id="debriefTranscript" placeholder="Paste Fathom transcript or notes…">${esc(db.transcript)}</textarea></div><div class="brief-actions"><button class="gen-btn" id="runDebrief">Run Debrief</button></div>`;
-  if(db.output) h+=`<div class="debrief-output"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><h4>Debrief Output</h4><button class="copy-btn" onclick="copyDebrief()">Copy</button></div><div class="brief-content" id="debriefContent">${db.output}</div></div>`;
+  let h=`<div class="debrief-section"><label>Paste Call Transcript or Notes</label><textarea class="debrief-textarea" id="debriefTranscript" placeholder="Paste Fathom transcript or notes…">${esc(db.transcript)}</textarea></div><div style="display:flex;gap:7px;margin-bottom:4px;"><button class="gen-btn" id="runDebrief">Run Debrief</button></div>`;
+  if(db.output)h+=`<div class="debrief-output"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h4>Debrief Output</h4><button class="copy-btn" onclick="copyDebrief()">Copy</button></div><div class="brief-content" id="debriefContent">${db.output}</div></div>`;
   c.innerHTML=h;
-  document.getElementById('debriefTranscript').addEventListener('input',e=>{STATE.debriefs[m.id].transcript=e.target.value; saveState();});
+  document.getElementById('debriefTranscript').addEventListener('input',e=>{STATE.debriefs[m.id].transcript=e.target.value;saveState();});
   document.getElementById('runDebrief').addEventListener('click',()=>runDebrief(m));
 }
 
-const DEFAULT_DEBRIEF = `You are Doss. Analyze the call transcript and produce a debrief.
+const DEFAULT_DEBRIEF=`You are Doss. Analyze the call transcript and produce a debrief.
 
 ## Call Summary
 2-3 sentences. What happened, what was the energy.
@@ -942,137 +692,104 @@ Draft a follow-up email. CRITICAL WRITING RULES:
 - End with ONE specific, concrete next step.
 - Sound human. If this reads like it was written by AI, you failed.`;
 
-function getDebriefSystemPrompt(meetingTitle, attendeeInfo, briefContext) {
-  const custom = STATE.debriefTemplate.trim();
-  const base = custom
-    ? `You are Doss. Analyze the call transcript following the user's instructions.\n\nDEBRIEF FORMAT INSTRUCTIONS:\n${custom}`
-    : DEFAULT_DEBRIEF;
-  return `${base}\n\nMeeting: ${meetingTitle}\nAttendees: ${attendeeInfo}\n${briefContext}\n\nDirect. No filler.`;
+function getDebriefSystemPrompt(title,ai,bc){
+  const c=STATE.debriefTemplate.trim();
+  const base=c?`You are Doss. Analyze the call transcript following the user's instructions.\n\nDEBRIEF FORMAT INSTRUCTIONS:\n${c}`:DEFAULT_DEBRIEF;
+  return`${base}\n\nMeeting: ${title}\nAttendees: ${ai}\n${bc}\n\nDirect. No filler.`;
 }
 
-async function runDebrief(m) {
-  const apiKey=document.getElementById('apiKey').value.trim(); if(!apiKey){alert('Enter API key.');return;}
-  const t=STATE.debriefs[m.id]?.transcript?.trim(); if(!t){alert('Paste transcript first.');return;}
-  STATE.generating[m.id]='debrief'; renderDetail();
+async function runDebrief(m){
+  const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter API key.');return;}
+  const t=STATE.debriefs[m.id]?.transcript?.trim();if(!t){alert('Paste transcript first.');return;}
+  STATE.generating[m.id]='debrief';renderDetail();
   const bc=STATE.briefs[m.id]?`Dossier:\n${htmlToText(STATE.briefs[m.id])}`:'';
   const ai=(m.attendees||[]).map(a=>`${a.name||'?'} (${a.email||''})`).join(', ');
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2500,
-        system: getDebriefSystemPrompt(m.title, ai, bc),
-        messages:[{role:'user',content:`Transcript:\n\n${t}`}]})
-    });
-    const data = await res.json();
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2500,system:getDebriefSystemPrompt(m.title,ai,bc),messages:[{role:'user',content:`Transcript:\n\n${t}`}]})});
+    const data=await res.json();
     STATE.debriefs[m.id].output=markdownToHtml((data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n'));
-  } catch(e) { STATE.debriefs[m.id].output='<p style="color:var(--red)">Error.</p>'; }
-  delete STATE.generating[m.id];
-  saveState();
-  renderDetail();
+  }catch(e){STATE.debriefs[m.id].output='<p style="color:var(--red)">Error.</p>';}
+  delete STATE.generating[m.id];saveState();renderDetail();
 }
+function copyDebrief(){const el=document.getElementById('debriefContent');if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();}}
 
-function copyDebrief() { const el=document.getElementById('debriefContent'); if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();} }
-
-// ============================================================
-// MANUAL ADD
-// ============================================================
-function addManualMeeting() {
-  const title=prompt('Meeting title:'); if(!title) return;
-  const time=prompt('Time (e.g. 2:00 PM):'); if(!time) return;
+// ── MANUAL ADD ──
+function addManualMeeting(){
+  const title=prompt('Meeting title:');if(!title)return;
+  const time=prompt('Time (e.g. 2:00 PM):');if(!time)return;
   const att=prompt('Attendees (comma-separated):');
-  const key=dateKey(STATE.currentDate);
-  if(!STATE.dayCache[key]) STATE.dayCache[key]=[];
+  const key=dateKey(STATE.currentDate);if(!STATE.dayCache[key])STATE.dayCache[key]=[];
   STATE.dayCache[key].push({id:'m-'+Date.now(),title,startTime:new Date().toISOString(),endTime:new Date().toISOString(),attendees:att?att.split(',').map(a=>({name:a.trim(),email:''})):[],location:null,manualTime:time});
   renderMeetingList();
 }
 
-// ============================================================
-// UTILS
-// ============================================================
-function esc(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function markdownToHtml(t){if(!t)return '';return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code>$1</code>').replace(/^\d+\. (.+)$/gm,'<li>$1</li>').replace(/^- (.+)$/gm,'<li>$1</li>').replace(/(<li>[\s\S]*?<\/li>(\n|$))+/g,m=>`<ul>${m}</ul>`).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>').replace(/^(?!<[hup]|<li|<ul|<\/ul|<br)(.+)$/gm,'<p>$1</p>').replace(/<p><\/p>/g,'').replace(/<p><br><\/p>/g,'');}
+// ── UTILS ──
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function markdownToHtml(t){
+  if(!t)return'';
+  return t
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/^\d+\. (.+)$/gm,'<li>$1</li>')
+    .replace(/^- (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>(\n|$))+/g,m=>`<ul>${m}</ul>`)
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/\n/g,'<br>')
+    .replace(/^(?!<[hup]|<li|<ul|<\/ul|<br)(.+)$/gm,'<p>$1</p>')
+    .replace(/<p><\/p>/g,'').replace(/<p><br><\/p>/g,'');
+}
 function htmlToText(h){const t=document.createElement('div');t.innerHTML=h;return t.textContent||t.innerText||'';}
 
-// ============================================================
-// DAY NAV
-// ============================================================
-async function navigateDay(offset) {
-  STATE.currentDate.setDate(STATE.currentDate.getDate() + offset);
-  STATE.activeMeetingId = null;
-  updateDateBar();
-  const key = dateKey(STATE.currentDate);
-  if (STATE.dayCache[key]) { renderMeetingList(); }
-  else if (STATE.accessToken) { await loadCurrentDay(); }
-  else { renderMeetingList(); }
-  document.getElementById('mainPanel').innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier.</p></div>`;
+// ── DAY NAV ──
+async function navigateDay(offset){
+  STATE.currentDate.setDate(STATE.currentDate.getDate()+offset);STATE.activeMeetingId=null;updateDateBar();
+  const key=dateKey(STATE.currentDate);
+  if(STATE.dayCache[key]){renderMeetingList();}
+  else if(STATE.accessToken){await loadCurrentDay();}
+  else{renderMeetingList();}
+  document.getElementById('mainPanel').innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier.</p></div>`;
 }
 
-// ============================================================
-// INIT
-// ============================================================
-initTimezones();
-updateDateBar();
-initGoogleAuth();
-
-document.getElementById('addBtn').addEventListener('click', addManualMeeting);
-document.getElementById('prevDay').addEventListener('click', () => navigateDay(-1));
-document.getElementById('nextDay').addEventListener('click', () => navigateDay(1));
-document.getElementById('todayBtn').addEventListener('click', async () => {
-  STATE.currentDate = new Date(); STATE.activeMeetingId = null; updateDateBar();
-  const key = dateKey(STATE.currentDate);
-  if (STATE.dayCache[key]) renderMeetingList();
-  else if (STATE.accessToken) await loadCurrentDay();
-  else renderMeetingList();
-  document.getElementById('mainPanel').innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier.</p></div>`;
-});
-// Load persisted API key
-const savedKey = localStorage.getItem('doss_apikey');
-if (savedKey) {
-  const keyEl = document.getElementById('apiKey');
-  keyEl.value = savedKey;
-  document.getElementById('apiBar').classList.toggle('connected', savedKey.startsWith('sk-ant-'));
-}
-
-document.getElementById('apiKey').addEventListener('input', e => {
-  const val = e.target.value;
-  document.getElementById('apiBar').classList.toggle('connected', val.startsWith('sk-ant-'));
-  localStorage.setItem('doss_apikey', val);
+// ── INIT ──
+initTimezones();updateDateBar();initGoogleAuth();
+document.getElementById('addBtn').addEventListener('click',addManualMeeting);
+document.getElementById('prevDay').addEventListener('click',()=>navigateDay(-1));
+document.getElementById('nextDay').addEventListener('click',()=>navigateDay(1));
+document.getElementById('todayBtn').addEventListener('click',async()=>{
+  STATE.currentDate=new Date();STATE.activeMeetingId=null;updateDateBar();
+  const key=dateKey(STATE.currentDate);
+  if(STATE.dayCache[key])renderMeetingList();else if(STATE.accessToken)await loadCurrentDay();else renderMeetingList();
+  document.getElementById('mainPanel').innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier.</p></div>`;
 });
 
-// Settings panel
-document.getElementById('settingsBtn').addEventListener('click', () => {
-  document.getElementById('settingsPanel').classList.toggle('open');
-});
+const savedKey=localStorage.getItem('doss_apikey');
+if(savedKey){document.getElementById('apiKey').value=savedKey;document.getElementById('apiBar').classList.toggle('connected',savedKey.startsWith('sk-ant-'));}
+document.getElementById('apiKey').addEventListener('input',e=>{const v=e.target.value;document.getElementById('apiBar').classList.toggle('connected',v.startsWith('sk-ant-'));localStorage.setItem('doss_apikey',v);});
 
-// Brief template
-const templateEl = document.getElementById('briefTemplate');
-templateEl.value = STATE.briefTemplate;
+document.getElementById('settingsBtn').addEventListener('click',()=>document.getElementById('settingsPanel').classList.toggle('open'));
+
+const templateEl=document.getElementById('briefTemplate');
+templateEl.value=STATE.briefTemplate;
 let briefSaveTimer;
-templateEl.addEventListener('input', e => {
-  STATE.briefTemplate = e.target.value;
-  localStorage.setItem('doss_template', e.target.value);
-  clearTimeout(briefSaveTimer);
-  const indicator = document.getElementById('briefSaved');
-  indicator.classList.remove('show');
-  briefSaveTimer = setTimeout(() => {
-    indicator.classList.add('show');
-    setTimeout(() => indicator.classList.remove('show'), 2000);
-  }, 500);
+templateEl.addEventListener('input',e=>{
+  STATE.briefTemplate=e.target.value;localStorage.setItem('doss_template',e.target.value);
+  clearTimeout(briefSaveTimer);const ind=document.getElementById('briefSaved');ind.classList.remove('show');
+  briefSaveTimer=setTimeout(()=>{ind.classList.add('show');setTimeout(()=>ind.classList.remove('show'),2000);},500);
 });
 
-// Debrief template
-const debriefTemplateEl = document.getElementById('debriefTemplate');
-debriefTemplateEl.value = STATE.debriefTemplate;
+const debriefTemplateEl=document.getElementById('debriefTemplate');
+debriefTemplateEl.value=STATE.debriefTemplate;
 let debriefSaveTimer;
-debriefTemplateEl.addEventListener('input', e => {
-  STATE.debriefTemplate = e.target.value;
-  localStorage.setItem('doss_debrief_template', e.target.value);
-  clearTimeout(debriefSaveTimer);
-  const indicator = document.getElementById('debriefSaved');
-  indicator.classList.remove('show');
-  debriefSaveTimer = setTimeout(() => {
-    indicator.classList.add('show');
-    setTimeout(() => indicator.classList.remove('show'), 2000);
-  }, 500);
+debriefTemplateEl.addEventListener('input',e=>{
+  STATE.debriefTemplate=e.target.value;localStorage.setItem('doss_debrief_template',e.target.value);
+  clearTimeout(debriefSaveTimer);const ind=document.getElementById('debriefSaved');ind.classList.remove('show');
+  debriefSaveTimer=setTimeout(()=>{ind.classList.add('show');setTimeout(()=>ind.classList.remove('show'),2000);},500);
 });
 </script>
 </body>
