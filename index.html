@@ -646,7 +646,15 @@ async function gatherFathomContext(m){
       return;
     }
 
+    // Get all external attendee emails for this meeting
+    const externalEmails=(m.attendees||[])
+      .filter(a=>{const d=emailDomain(a.email);return d&&d!==STATE.orgDomain&&!d.includes('resource.calendar.google.com');})
+      .map(a=>a.email).filter(Boolean);
+
+    // Pass emails directly to Fathom as filter params
     const params=new URLSearchParams({include_transcript:'true',per_page:'50'});
+    externalEmails.forEach(e=>params.append('calendar_invitees[]',e));
+
     const res=await fetch(`${proxyUrl}/meetings?${params}`,{
       headers:{'X-Fathom-Key':fathomKey,'Content-Type':'application/json'}
     });
@@ -657,16 +665,39 @@ async function gatherFathomContext(m){
     }
 
     const data=await res.json();
-    const allMeetings=data.data||data.meetings||[];
+    console.log('Fathom raw response:', JSON.stringify(data).slice(0,2000));
 
-    // Filter by domain match
-    const matched=allMeetings.filter(fm=>{
-      const invitees=fm.calendar_invitees||fm.attendees||fm.participants||[];
-      return invitees.some(inv=>{
-        const email=inv.email||inv;
-        return externalDomains.includes(emailDomain(email));
+    // Try every possible top-level array field
+    const allMeetings=data.data||data.meetings||data.items||data.results||(Array.isArray(data)?data:[]);
+    console.log(`Fathom: ${allMeetings.length} meetings returned for emails:`, externalEmails);
+
+    // If email filter returned nothing, fall back to fetching all and filtering by domain
+    let matched=allMeetings;
+    if(matched.length===0&&externalDomains.length>0){
+      console.log('Email filter returned 0, trying domain fallback...');
+      const fallbackParams=new URLSearchParams({include_transcript:'true',per_page:'50'});
+      const fallbackRes=await fetch(`${proxyUrl}/meetings?${fallbackParams}`,{
+        headers:{'X-Fathom-Key':fathomKey,'Content-Type':'application/json'}
       });
-    });
+      const fallbackData=await fallbackRes.json();
+      console.log('Fathom fallback raw:', JSON.stringify(fallbackData).slice(0,1000));
+      const all=fallbackData.data||fallbackData.meetings||fallbackData.items||fallbackData.results||(Array.isArray(fallbackData)?fallbackData:[]);
+      console.log(`Fathom fallback: ${all.length} total meetings, sample:`, all[0]);
+      matched=all.filter(fm=>{
+        // Try every possible attendee field
+        const invitees=[
+          ...(fm.calendar_invitees||[]),
+          ...(fm.attendees||[]),
+          ...(fm.participants||[]),
+          ...(fm.invitees||[]),
+        ];
+        return invitees.some(inv=>{
+          const email=typeof inv==='string'?inv:(inv.email||inv.emailAddress||'');
+          return externalDomains.some(d=>email.toLowerCase().includes(d));
+        });
+      });
+      console.log(`Domain filter matched: ${matched.length} meetings`);
+    }
 
     // Sort by date descending
     matched.sort((a,b)=>new Date(b.created_at||b.date||0)-new Date(a.created_at||a.date||0));
