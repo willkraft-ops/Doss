@@ -325,19 +325,20 @@ function saveState(){
   try{
     localStorage.setItem('doss_briefs',JSON.stringify(STATE.briefs));
     localStorage.setItem('doss_followups',JSON.stringify(STATE.followups));
-    localStorage.setItem('doss_transcripts',JSON.stringify(STATE.transcripts));
+    // Transcripts are NOT persisted — too large, re-fetched each session via Gather Context
+    // Only persist chat history (text only, small)
     localStorage.setItem('doss_tcchats',JSON.stringify(STATE.tcChats));
-  }catch(e){}
+  }catch(e){console.warn('State save failed:',e);}
 }
 function loadState(){
   try{
     const b=localStorage.getItem('doss_briefs'),f=localStorage.getItem('doss_followups');
-    const t=localStorage.getItem('doss_transcripts'),c=localStorage.getItem('doss_tcchats');
+    const c=localStorage.getItem('doss_tcchats');
     if(b)STATE.briefs=JSON.parse(b);
     if(f)STATE.followups=JSON.parse(f);
-    if(t)STATE.transcripts=JSON.parse(t);
     if(c)STATE.tcChats=JSON.parse(c);
-  }catch(e){}
+    // Transcripts always start empty — user hits Gather Context to reload
+  }catch(e){console.warn('State load failed:',e);}
 }
 loadState();
 
@@ -854,7 +855,7 @@ function getBriefPrompt(meetingId){
   // Inject prior call context if available
   const transcripts=STATE.transcripts[meetingId];
   if(transcripts&&transcripts.length>0){
-    const ctx=transcripts.map(t=>`=== ${t.title}${t.date?' ('+new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+')':''}  ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,14000);
+    const ctx=transcripts.map(t=>`=== ${t.title}${t.date?' ('+new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+')':''}  ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,40000);
     const priorBlock=`PRIOR CALL TRANSCRIPTS — THIS IS YOUR PRIMARY INTELLIGENCE SOURCE. These are verbatim transcripts from previous calls with this prospect. Everything the prospect said, every signal, every objection, every moment of enthusiasm — it's all here. Weight this above public research.\n\n${ctx}\n\nAFTER REVIEWING PRIOR CALLS, supplement with web research for anything still unknown.`;
     base=base.replace('{{PRIOR_CALL_CONTEXT}}',priorBlock);
   }else{
