@@ -7,30 +7,18 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* Warm cream — paper + main bg */
   --cream-50:#f5f0e8;--cream-100:#eae4d8;--cream-150:#e4ddd0;--cream-200:#dbd3c4;
-  --cream-300:#ccc2b0;--cream-400:#b5a894;--cream-500:#978a78;
+  --cream-300:#ccc2b0;--cream-400:#b5a894;
   --bg:#e6dfd4;--paper:#f5f0e8;--paper-border:#cec6b6;
-
-  /* Dark chrome — sidebar, headers */
   --dark-900:#151210;--dark-800:#1c1813;--dark-700:#221d16;--dark-600:#2a2319;
   --dark-500:#332b20;--dark-400:#3e3328;--dark-300:#4e4236;--dark-200:#6b5e52;
   --dark-100:#a89884;--dark-50:#cfc0ae;
-
-  /* Copper */
   --accent:#c87941;--accent-warm:#d4894e;--accent-light:#e0a870;
   --accent-bg:rgba(200,121,65,0.13);--accent-border:rgba(200,121,65,0.30);
-
-  /* Semantic */
   --green:#5a8c66;--green-bg:rgba(90,140,102,0.12);--green-border:rgba(90,140,102,0.28);
   --yellow:#c49520;--red:#b05a3a;
-
-  /* Text — light contexts (paper) */
   --text:#2c2520;--text-secondary:#6b6058;--text-muted:#9c9080;
-
-  /* Text — dark contexts (sidebar/header) */
   --dk-text:#ede8e0;--dk-text-secondary:#a89884;--dk-text-muted:#6b5e52;
-
   --mono:'JetBrains Mono',monospace;--sans:'DM Sans',-apple-system,sans-serif;--serif:'DM Serif Display',Georgia,serif;
   --radius:8px;--radius-lg:12px;
   --shadow-lg:0 8px 28px rgba(10,8,6,0.35),0 2px 8px rgba(10,8,6,0.2);
@@ -43,7 +31,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
   background-image:linear-gradient(rgba(181,112,58,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(181,112,58,0.018) 1px,transparent 1px);background-size:28px 28px;}
 .app{display:flex;height:100vh;}
 
-/* ── SIDEBAR ── */
+/* SIDEBAR */
 .sidebar{width:300px;min-width:300px;background:var(--dark-800);border-right:1px solid var(--dark-600);display:flex;flex-direction:column;overflow:hidden;}
 .sidebar-header{padding:18px 18px 0;flex-shrink:0;}
 .logo{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
@@ -52,15 +40,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .settings-toggle{width:26px;height:26px;border-radius:6px;border:1px solid var(--dark-500);background:var(--dark-700);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--dk-text-muted);transition:all 0.15s;margin-left:auto;}
 .settings-toggle:hover{background:var(--dark-600);color:var(--dk-text-secondary);}
 .settings-toggle.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent);}
-
-/* AUTH */
 .auth-bar{margin:10px 18px 0;}
 .google-btn{width:100%;padding:8px 11px;border-radius:var(--radius);border:1px solid var(--dark-500);background:var(--dark-700);font-family:var(--sans);font-size:12px;font-weight:500;color:var(--dk-text-secondary);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;justify-content:center;}
 .google-btn:hover{background:var(--dark-600);color:var(--dk-text);}
 .google-btn.signed-in{background:var(--green-bg);border-color:var(--green-border);color:var(--green);cursor:default;}
 
-/* SETTINGS PANEL */
-.settings-panel{display:none;padding:14px 18px;border-top:1px solid var(--dark-600);flex-shrink:0;max-height:46vh;overflow-y:auto;}
+/* SETTINGS */
+.settings-panel{display:none;padding:14px 18px;border-top:1px solid var(--dark-600);flex-shrink:0;max-height:50vh;overflow-y:auto;}
 .settings-panel.open{display:block;}
 .settings-panel::-webkit-scrollbar{width:3px;}
 .settings-panel::-webkit-scrollbar-thumb{background:var(--dark-400);border-radius:2px;}
@@ -73,7 +59,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .api-lbl{font-size:10px;font-weight:600;color:var(--dk-text-muted);text-transform:uppercase;letter-spacing:0.5px;flex-shrink:0;}
 .api-input{flex:1;border:none;background:transparent;font-family:var(--mono);font-size:11px;color:var(--dk-text);outline:none;}
 .api-input::placeholder{color:var(--dk-text-muted);}
-.settings-textarea{width:100%;padding:9px 11px;border:1px solid var(--dark-500);border-radius:var(--radius);font-family:var(--sans);font-size:12px;color:var(--dk-text);background:var(--dark-700);outline:none;resize:vertical;min-height:90px;line-height:1.5;transition:border-color 0.15s;}
+.settings-textarea{width:100%;padding:9px 11px;border:1px solid var(--dark-500);border-radius:var(--radius);font-family:var(--sans);font-size:12px;color:var(--dk-text);background:var(--dark-700);outline:none;resize:vertical;min-height:80px;line-height:1.5;transition:border-color 0.15s;}
 .settings-textarea:focus{border-color:var(--accent-border);}
 .settings-textarea::placeholder{color:var(--dk-text-muted);}
 .settings-hint{font-size:11px;color:var(--dk-text-muted);margin-top:3px;line-height:1.4;}
@@ -106,7 +92,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .meeting-name{font-weight:600;font-size:13px;color:var(--dk-text);margin-bottom:1px;line-height:1.3;}
 .meeting-meta{font-size:11.5px;color:var(--dk-text-muted);}
 
-/* ── MAIN ── */
+/* MAIN */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);
   background-image:linear-gradient(rgba(180,160,130,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(180,160,130,0.05) 1px,transparent 1px);background-size:24px 24px;}
 .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);gap:10px;padding:40px;}
@@ -123,31 +109,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 
 /* ACTION BAR */
 .action-bar{padding:9px 22px;border-bottom:1px solid var(--dark-500);background:var(--dark-800);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;}
-
-/* PILL TOGGLE */
 .pill-toggle{display:inline-flex;background:var(--dark-700);border:1px solid var(--dark-500);border-radius:20px;padding:3px;gap:2px;position:relative;}
 .pill-slider{position:absolute;top:3px;left:3px;height:calc(100% - 6px);background:var(--dark-500);border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,0.25);transition:transform 0.22s cubic-bezier(0.34,1.2,0.64,1),width 0.22s cubic-bezier(0.34,1.2,0.64,1);z-index:0;pointer-events:none;}
 .pill-opt{padding:5px 18px;border-radius:16px;border:none;background:transparent;font-family:var(--sans);font-size:12.5px;font-weight:500;color:var(--dk-text-muted);cursor:pointer;transition:color 0.18s;white-space:nowrap;display:flex;align-items:center;gap:5px;position:relative;z-index:1;}
 .pill-opt.active{color:var(--dk-text);}
 .pill-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0;}
-
-/* BUTTONS */
 .action-btns{display:flex;gap:6px;}
 .gen-btn{padding:7px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:7px;box-shadow:0 1px 6px rgba(200,121,65,0.25);}
 .gen-btn:hover{background:var(--accent-warm);}
 .gen-btn:disabled{background:var(--dark-400);box-shadow:none;cursor:not-allowed;color:var(--dk-text-muted);}
 .gen-btn.secondary{background:var(--dark-600);color:var(--dk-text-secondary);border:1px solid var(--dark-500);box-shadow:none;}
 .gen-btn.secondary:hover{background:var(--dark-500);color:var(--dk-text);}
+.gen-btn.ghost{background:transparent;color:var(--dk-text-muted);border:1px solid var(--dark-500);box-shadow:none;padding:5px 12px;font-size:11.5px;}
+.gen-btn.ghost:hover{background:var(--dark-600);color:var(--dk-text);}
 
 /* PANES */
 .panes-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;position:relative;}
 .tab-pane{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;opacity:0;pointer-events:none;transition:opacity 0.18s;}
 .tab-pane.active{opacity:1;pointer-events:all;}
 
-/* ── BRIEF LAYOUT ── */
+/* BRIEF LAYOUT */
 .brief-layout{flex:1;display:flex;overflow:hidden;}
-
-/* TOC — dark, part of chrome */
 .brief-toc-col{width:168px;min-width:168px;overflow-y:auto;padding:18px 10px 18px 14px;border-right:1px solid var(--dark-600);display:flex;flex-direction:column;gap:1px;background:var(--dark-800);}
 .brief-toc-col::-webkit-scrollbar{width:3px;}
 .brief-toc-col::-webkit-scrollbar-thumb{background:var(--dark-400);border-radius:2px;}
@@ -160,21 +142,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .toc-skel:nth-child(2){width:75%;}.toc-skel:nth-child(3){width:85%;}.toc-skel:nth-child(4){width:60%;}
 .toc-skel:nth-child(5){width:80%;}.toc-skel:nth-child(6){width:70%;}.toc-skel:nth-child(7){width:55%;}
 @keyframes shimmer{0%,100%{opacity:0.3}50%{opacity:0.7}}
-
-/* Paper column — warm, frames the document */
 .brief-paper-col{flex:1;overflow-y:auto;padding:28px 32px 48px;display:flex;flex-direction:column;}
 .brief-paper-col::-webkit-scrollbar{width:4px;}
 .brief-paper-col::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
-
-/* Search status */
 .search-status{font-family:var(--mono);font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:9px;padding:0 0 14px;min-height:34px;transition:opacity 0.5s;}
 .search-status.faded{opacity:0.3;}
 
-/* THE PAPER */
+/* PAPER */
 .brief-paper{background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid rgba(200,121,65,0.25);border-radius:2px;box-shadow:var(--paper-shadow);padding:40px 48px 40px 52px;position:relative;}
 .brief-paper::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(transparent,transparent 27px,rgba(181,112,58,0.04) 27px,rgba(181,112,58,0.04) 28px);pointer-events:none;border-radius:2px;}
-
-/* PAPER TYPOGRAPHY */
 .brief-paper h1{font-family:var(--serif);font-size:22px;font-weight:400;color:#1a1612;letter-spacing:-0.2px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--paper-border);line-height:1.25;}
 .brief-paper h2{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;color:var(--accent);margin-top:28px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(200,121,65,0.18);scroll-margin-top:16px;}
 .brief-paper h2:first-of-type{margin-top:0;}
@@ -189,34 +165,71 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .brief-paper strong{font-weight:600;color:#1a1612;}
 .brief-paper em{color:var(--text-secondary);}
 .brief-paper code{font-family:var(--mono);font-size:11.5px;background:var(--cream-200);padding:1px 5px;border-radius:2px;color:var(--accent);}
-
-/* BRIEF EMPTY */
 .brief-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:60px 40px;color:var(--text-muted);}
 .brief-empty-icon{width:52px;height:52px;background:var(--cream-200);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:22px;}
 .brief-empty h4{font-size:14px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;}
 .brief-empty p{font-size:13px;line-height:1.5;max-width:300px;}
 
-/* ── FOLLOW-UP PANE ── */
-.debrief-layout{flex:1;overflow-y:auto;padding:24px 32px 48px;display:flex;flex-direction:column;gap:16px;}
-.debrief-layout::-webkit-scrollbar{width:4px;}
-.debrief-layout::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
-.debrief-input-area{display:flex;flex-direction:column;gap:8px;}
-.debrief-lbl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);}
-.debrief-textarea{width:100%;padding:12px 14px;border:1px solid var(--paper-border);border-radius:var(--radius);font-family:var(--sans);font-size:13px;color:var(--text);background:var(--paper);outline:none;resize:vertical;min-height:130px;line-height:1.6;transition:border-color 0.15s;box-shadow:inset 0 1px 3px rgba(44,37,32,0.04);}
+/* FOLLOW-UP PANE */
+.followup-pane{flex:1;overflow-y:auto;padding:20px 28px 48px;display:flex;flex-direction:column;gap:0;}
+.followup-pane::-webkit-scrollbar{width:4px;}
+.followup-pane::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
+
+/* Context bar */
+.context-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid rgba(200,121,65,0.25);border-radius:2px;margin-bottom:16px;box-shadow:0 1px 4px rgba(44,37,32,0.06);}
+.context-bar-icon{width:28px;height:28px;border-radius:6px;background:var(--accent-bg);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.context-bar-text{flex:1;}
+.context-bar-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:1px;}
+.context-bar-sub{font-size:11px;color:var(--text-muted);}
+.context-bar-sub a{color:var(--accent);text-decoration:none;cursor:pointer;}
+.context-bar-sub a:hover{text-decoration:underline;}
+
+/* Transcript chat */
+.transcript-chat{background:var(--paper);border:1px solid var(--paper-border);border-radius:2px;box-shadow:0 1px 4px rgba(44,37,32,0.06);display:flex;flex-direction:column;overflow:hidden;margin-bottom:16px;min-height:280px;max-height:420px;}
+.transcript-chat-header{padding:9px 16px;border-bottom:1px solid var(--paper-border);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);background:rgba(200,121,65,0.04);display:flex;align-items:center;justify-content:space-between;}
+.transcript-chat-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+.transcript-chat-msgs::-webkit-scrollbar{width:3px;}
+.transcript-chat-msgs::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:2px;}
+.tc-msg{display:flex;gap:8px;}
+.tc-avatar{width:22px;height:22px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px;}
+.tc-avatar.user{background:var(--cream-200);color:var(--text-secondary);}
+.tc-avatar.assistant{background:var(--accent);color:#fff;}
+.tc-bubble{flex:1;font-size:13px;line-height:1.65;color:var(--text);}
+.tc-bubble strong{font-weight:600;}
+.tc-bubble p{margin-bottom:6px;}
+.tc-bubble p:last-child{margin-bottom:0;}
+.tc-bubble ul{margin-left:16px;margin-bottom:6px;}
+.tc-bubble li{margin-bottom:3px;}
+.tc-input-row{padding:10px 12px;border-top:1px solid var(--paper-border);display:flex;gap:8px;background:rgba(200,121,65,0.02);}
+.tc-input{flex:1;border:1px solid var(--paper-border);border-radius:6px;padding:8px 12px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--paper);outline:none;resize:none;min-height:36px;max-height:100px;transition:border-color 0.15s;line-height:1.5;}
+.tc-input:focus{border-color:var(--accent-border);}
+.tc-input::placeholder{color:var(--text-muted);}
+.tc-send{padding:8px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;flex-shrink:0;}
+.tc-send:hover{background:var(--accent-warm);}
+.tc-send:disabled{background:var(--cream-300);cursor:not-allowed;}
+
+/* Divider */
+.section-divider{display:flex;align-items:center;gap:10px;margin:4px 0 16px;color:var(--text-muted);font-size:10.5px;text-transform:uppercase;letter-spacing:0.8px;font-weight:600;}
+.section-divider::before,.section-divider::after{content:'';flex:1;height:1px;background:var(--paper-border);}
+
+/* Paste fallback */
+.debrief-lbl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:7px;}
+.debrief-textarea{width:100%;padding:12px 14px;border:1px solid var(--paper-border);border-radius:var(--radius);font-family:var(--sans);font-size:13px;color:var(--text);background:var(--paper);outline:none;resize:vertical;min-height:120px;line-height:1.6;transition:border-color 0.15s;box-shadow:inset 0 1px 3px rgba(44,37,32,0.04);}
 .debrief-textarea:focus{border-color:var(--accent-border);}
 .debrief-textarea::placeholder{color:var(--text-muted);}
 
-/* Email output — papery */
-.email-block{background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid rgba(200,121,65,0.25);border-radius:2px;box-shadow:var(--paper-shadow);overflow:hidden;}
+/* Email output */
+.email-block{background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid rgba(200,121,65,0.25);border-radius:2px;box-shadow:var(--paper-shadow);overflow:hidden;margin-top:12px;}
 .email-header{padding:10px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--paper-border);background:rgba(200,121,65,0.04);}
 .email-header-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);}
 .copy-btn{padding:4px 11px;border-radius:5px;border:1px solid var(--paper-border);background:transparent;font-family:var(--sans);font-size:11px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
 .copy-btn:hover{background:var(--cream-150);color:var(--text);}
-.email-body{padding:22px 24px;font-size:13.5px;line-height:1.75;color:var(--text);white-space:pre-wrap;font-family:var(--sans);}
+.email-body{padding:22px 24px;font-size:13.5px;line-height:1.75;color:var(--text);white-space:pre-wrap;}
 
 /* SPINNER */
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.25);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
 .spinner.dark{border-color:var(--dark-400);border-top-color:var(--accent);}
+.spinner.light{border-color:rgba(200,121,65,0.2);border-top-color:var(--accent);}
 @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
@@ -240,26 +253,30 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         </button>
       </div>
     </div>
-
     <div class="auth-bar">
       <button class="google-btn" id="googleBtn" onclick="handleGoogleAuth()">
         <svg width="15" height="15" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
         Sign in with Google
       </button>
     </div>
-
     <div class="settings-panel" id="settingsPanel">
-      <label>API Key</label>
+      <label>Anthropic API Key</label>
       <div class="api-bar" id="apiBar">
         <div class="api-dot"></div>
         <span class="api-lbl">ANT</span>
         <input type="password" class="api-input" id="apiKey" placeholder="sk-ant-…" autocomplete="off">
       </div>
+      <label>Fathom API Key</label>
+      <div class="api-bar" id="fathomBar">
+        <div class="api-dot" id="fathomDot"></div>
+        <span class="api-lbl">FAT</span>
+        <input type="password" class="api-input" id="fathomKey" placeholder="Fathom API key…" autocomplete="off">
+      </div>
+      <div class="settings-hint" style="margin-top:4px;">Enables prior call context in the Follow-up tab.</div>
       <label>Brief Template <span class="save-indicator" id="briefSaved">Saved ✓</span></label>
-      <textarea class="settings-textarea" id="briefTemplate" placeholder="Leave blank for the full default dossier. Or describe what you want."></textarea>
+      <textarea class="settings-textarea" id="briefTemplate" placeholder="Leave blank for the full default dossier."></textarea>
       <div class="settings-hint">Leave blank for the full default dossier.</div>
     </div>
-
     <div class="date-bar">
       <div><div class="date-label" id="dateLabel"></div><div class="date-sub" id="dateSub"></div></div>
       <div class="day-nav">
@@ -291,12 +308,30 @@ const STATE={
   accessToken:null,orgDomain:'',dayCache:{},
   activeMeetingId:null,activeTab:'brief',currentDate:new Date(),
   timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
-  briefs:{},followups:{},generating:{},
+  briefs:{},followups:{},transcripts:{},tcChats:{},
+  generating:{},gatheringContext:{},
   model:'claude-sonnet-4-20250514',
   briefTemplate:localStorage.getItem('doss_template')||'',
 };
-function saveState(){try{localStorage.setItem('doss_briefs',JSON.stringify(STATE.briefs));localStorage.setItem('doss_followups',JSON.stringify(STATE.followups));}catch(e){}}
-function loadState(){try{const b=localStorage.getItem('doss_briefs'),f=localStorage.getItem('doss_followups');if(b)STATE.briefs=JSON.parse(b);if(f)STATE.followups=JSON.parse(f);}catch(e){}}
+
+function saveState(){
+  try{
+    localStorage.setItem('doss_briefs',JSON.stringify(STATE.briefs));
+    localStorage.setItem('doss_followups',JSON.stringify(STATE.followups));
+    localStorage.setItem('doss_transcripts',JSON.stringify(STATE.transcripts));
+    localStorage.setItem('doss_tcchats',JSON.stringify(STATE.tcChats));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    const b=localStorage.getItem('doss_briefs'),f=localStorage.getItem('doss_followups');
+    const t=localStorage.getItem('doss_transcripts'),c=localStorage.getItem('doss_tcchats');
+    if(b)STATE.briefs=JSON.parse(b);
+    if(f)STATE.followups=JSON.parse(f);
+    if(t)STATE.transcripts=JSON.parse(t);
+    if(c)STATE.tcChats=JSON.parse(c);
+  }catch(e){}
+}
 loadState();
 
 // ── GOOGLE AUTH ──
@@ -391,7 +426,7 @@ function renderMeetingList(){
 function renderDetail(){
   const main=document.getElementById('mainPanel');
   const meeting=getCurrentMeetings().find(m=>m.id===STATE.activeMeetingId);
-  if(!meeting){main.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier or log a follow-up.</p></div>`;return;}
+  if(!meeting){main.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier or write a follow-up.</p></div>`;return;}
   const tz=getTzAbbr(),attendeeStr=(meeting.attendees||[]).map(a=>a.name||a.email).join(', ');
   const hasBrief=!!STATE.briefs[meeting.id],hasFollowup=!!STATE.followups[meeting.id]?.email;
   main.innerHTML=`
@@ -476,23 +511,215 @@ function renderBriefPane(m){
 function renderDebriefPane(m){
   const pane=document.getElementById('debriefPane');if(!pane)return;
   if(!STATE.followups[m.id])STATE.followups[m.id]={transcript:'',email:null};
-  const fu=STATE.followups[m.id],isGen=STATE.generating[m.id]==='followup';
+  if(!STATE.tcChats[m.id])STATE.tcChats[m.id]=[];
+  const fu=STATE.followups[m.id];
+  const fathomKey=localStorage.getItem('doss_fathomkey')||'';
+  const transcripts=STATE.transcripts[m.id];
+  const hasTranscripts=transcripts&&transcripts.length>0;
+  const isGathering=!!STATE.gatheringContext[m.id];
+  const isGenFollowup=STATE.generating[m.id]==='followup';
+  const isChatting=STATE.generating[m.id]==='chat';
+
+  // Context bar
+  let contextBarHtml='';
+  if(!fathomKey){
+    contextBarHtml=`<div class="context-bar">
+      <div class="context-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg></div>
+      <div class="context-bar-text"><div class="context-bar-title">No Fathom key set</div><div class="context-bar-sub">Add your Fathom API key in <a onclick="document.getElementById('settingsPanel').classList.add('open');document.getElementById('settingsBtn').classList.add('active');">Settings</a> to pull prior call transcripts.</div></div>
+    </div>`;
+  }else if(isGathering){
+    contextBarHtml=`<div class="context-bar">
+      <div class="context-bar-icon"><span class="spinner light"></span></div>
+      <div class="context-bar-text"><div class="context-bar-title">Searching Fathom…</div><div class="context-bar-sub">Looking for prior recordings with this account.</div></div>
+    </div>`;
+  }else if(hasTranscripts){
+    const count=transcripts.length;
+    const titles=transcripts.map(t=>t.title||(t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'Call')).join(', ');
+    contextBarHtml=`<div class="context-bar">
+      <div class="context-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <div class="context-bar-text"><div class="context-bar-title">${count} prior call${count!==1?'s':''} loaded</div><div class="context-bar-sub">${esc(titles)} · <a onclick="clearTranscripts('${m.id}')">Clear</a> · <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh</a></div></div>
+    </div>`;
+  }else if(transcripts&&transcripts.length===0){
+    contextBarHtml=`<div class="context-bar">
+      <div class="context-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--dk-text-muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg></div>
+      <div class="context-bar-text"><div class="context-bar-title">No prior recordings found</div><div class="context-bar-sub">No Fathom calls found with this account's domain. <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Try again</a></div></div>
+    </div>`;
+  }else{
+    contextBarHtml=`<div class="context-bar">
+      <div class="context-bar-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+      <div class="context-bar-text"><div class="context-bar-title">Pull prior call context</div><div class="context-bar-sub">Search Fathom for every recorded call with this account.</div></div>
+      <button class="gen-btn" style="flex-shrink:0;font-size:12px;padding:6px 14px;" onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Gather Context</button>
+    </div>`;
+  }
+
+  // Chat section
+  let chatHtml='';
+  if(hasTranscripts){
+    const msgs=STATE.tcChats[m.id]||[];
+    const msgsHtml=msgs.length===0
+      ?`<div style="padding:20px 16px;text-align:center;color:var(--text-muted);font-size:12.5px;">Ask anything about the prior calls — what was quoted, objections, their tech stack, next steps discussed…</div>`
+      :msgs.map(msg=>`<div class="tc-msg"><div class="tc-avatar ${msg.role}">${msg.role==='user'?'W':'D'}</div><div class="tc-bubble">${msg.role==='assistant'?markdownToHtml(msg.content):esc(msg.content)}</div></div>`).join('');
+    chatHtml=`
+      <div class="transcript-chat">
+        <div class="transcript-chat-header"><span>Ask about prior calls</span><span style="font-size:10px;color:var(--text-muted);font-weight:400;">${transcripts.length} call${transcripts.length!==1?'s':''} in context</span></div>
+        <div class="transcript-chat-msgs" id="tcMsgs">${msgsHtml}${isChatting?'<div class="tc-msg"><div class="tc-avatar assistant">D</div><div class="tc-bubble" style="color:var(--text-muted);font-style:italic;">Thinking…</div></div>':''}</div>
+        <div class="tc-input-row">
+          <textarea class="tc-input" id="tcInput" placeholder="What did I quote them? What was their biggest pain?" rows="1"></textarea>
+          <button class="tc-send" id="tcSend" ${isChatting?'disabled':''}>Ask</button>
+        </div>
+      </div>`;
+  }
+
+  // Email section
   const emailHtml=fu.email
     ?`<div class="email-block"><div class="email-header"><span class="email-header-lbl">Follow-up Email</span><button class="copy-btn" id="copyEmailBtn">Copy</button></div><div class="email-body">${esc(fu.email)}</div></div>`:'';
-  pane.innerHTML=`<div class="debrief-layout">
-    <div class="debrief-input-area">
+
+  let emailSection='';
+  if(hasTranscripts){
+    emailSection=`
+      <div class="section-divider">Follow-up Email</div>
+      ${!isGenFollowup
+        ?`<button class="gen-btn" id="runDebriefBtn">Write Follow-up Email</button>`
+        :`<button class="gen-btn" disabled><span class="spinner"></span> Writing…</button>`}
+      ${emailHtml}`;
+  }else{
+    emailSection=`
       <div class="debrief-lbl">Paste transcript</div>
       <textarea class="debrief-textarea" id="debriefTranscript" placeholder="Paste your Fathom transcript…">${esc(fu.transcript)}</textarea>
-      ${!isGen
-        ?`<div><button class="gen-btn" id="runDebriefBtn"${!fu.transcript.trim()?' disabled':''}>Write Follow-up Email</button></div>`
-        :`<div><button class="gen-btn" disabled><span class="spinner"></span> Writing…</button></div>`}
-    </div>
-    ${emailHtml}
-  </div>`;
+      ${!isGenFollowup
+        ?`<div style="margin-top:8px;"><button class="gen-btn" id="runDebriefBtn"${!fu.transcript.trim()?' disabled':''}>Write Follow-up Email</button></div>`
+        :`<div style="margin-top:8px;"><button class="gen-btn" disabled><span class="spinner"></span> Writing…</button></div>`}
+      ${emailHtml}`;
+  }
+
+  pane.innerHTML=`<div class="followup-pane">${contextBarHtml}${chatHtml}${emailSection}</div>`;
+
+  // Scroll chat to bottom
+  const tcMsgs=document.getElementById('tcMsgs');if(tcMsgs)tcMsgs.scrollTop=99999;
+
+  // Wire up chat
+  const tcInput=document.getElementById('tcInput');
+  const tcSend=document.getElementById('tcSend');
+  if(tcInput&&tcSend){
+    tcInput.addEventListener('input',()=>{tcInput.style.height='auto';tcInput.style.height=Math.min(tcInput.scrollHeight,100)+'px';});
+    tcInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTranscriptChat(m);}});
+    tcSend.addEventListener('click',()=>sendTranscriptChat(m));
+  }
+
+  // Wire up paste fallback
   const ta=document.getElementById('debriefTranscript');
-  ta?.addEventListener('input',e=>{fu.transcript=e.target.value;saveState();const btn=document.getElementById('runDebriefBtn');if(btn)btn.disabled=!e.target.value.trim();});
+  if(ta)ta.addEventListener('input',e=>{fu.transcript=e.target.value;saveState();const btn=document.getElementById('runDebriefBtn');if(btn)btn.disabled=!e.target.value.trim();});
+
   document.getElementById('runDebriefBtn')?.addEventListener('click',()=>runFollowup(m));
   document.getElementById('copyEmailBtn')?.addEventListener('click',()=>{if(fu.email)navigator.clipboard.writeText(fu.email).catch(()=>{});});
+}
+
+// ── GATHER FATHOM CONTEXT ──
+async function gatherFathomContext(m){
+  if(!m)return;
+  const fathomKey=localStorage.getItem('doss_fathomkey')||'';
+  if(!fathomKey){alert('Add your Fathom API key in Settings first.');return;}
+
+  // Get external domains
+  const externalDomains=[...new Set(
+    (m.attendees||[])
+      .map(a=>emailDomain(a.email))
+      .filter(d=>d&&d!==STATE.orgDomain&&!d.includes('resource.calendar.google.com'))
+  )];
+  if(!externalDomains.length){alert('No external attendees found for this meeting.');return;}
+
+  STATE.gatheringContext[m.id]=true;
+  renderDebriefPane(m);
+
+  try{
+    // Fetch all meetings with transcripts from Fathom
+    const params=new URLSearchParams({include_transcript:'true',per_page:'50'});
+    const res=await fetch(`https://api.fathom.ai/external/v1/meetings?${params}`,{
+      headers:{'X-Api-Key':fathomKey,'Content-Type':'application/json'}
+    });
+
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      throw new Error(err.message||`Fathom API error ${res.status}`);
+    }
+
+    const data=await res.json();
+    const allMeetings=data.data||data.meetings||[];
+
+    // Filter by domain match
+    const matched=allMeetings.filter(fm=>{
+      const invitees=fm.calendar_invitees||fm.attendees||fm.participants||[];
+      return invitees.some(inv=>{
+        const email=inv.email||inv;
+        return externalDomains.includes(emailDomain(email));
+      });
+    });
+
+    // Sort by date descending
+    matched.sort((a,b)=>new Date(b.created_at||b.date||0)-new Date(a.created_at||a.date||0));
+
+    STATE.transcripts[m.id]=matched.map(fm=>({
+      title:fm.title||'Untitled Call',
+      date:fm.created_at||fm.date||null,
+      transcript:fm.transcript||fm.transcript_text||'',
+      id:fm.id,
+    }));
+
+    saveState();
+  }catch(e){
+    console.error('Fathom fetch error:',e);
+    // Check if it's a CORS error
+    const msg=e.message||'';
+    if(msg.includes('Failed to fetch')||msg.includes('CORS')){
+      alert('Fathom API blocked the request from the browser (CORS). This may require a backend proxy. Check console for details.');
+    }else{
+      alert(`Fathom error: ${e.message}`);
+    }
+    STATE.transcripts[m.id]=[];
+  }
+
+  delete STATE.gatheringContext[m.id];
+  renderDebriefPane(m);
+}
+
+function clearTranscripts(meetingId){
+  delete STATE.transcripts[meetingId];
+  STATE.tcChats[meetingId]=[];
+  saveState();
+  const m=getCurrentMeetings().find(x=>x.id===meetingId);
+  if(m)renderDebriefPane(m);
+}
+
+// ── TRANSCRIPT CHAT ──
+async function sendTranscriptChat(m){
+  const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey)return;
+  const input=document.getElementById('tcInput');if(!input)return;
+  const msg=input.value.trim();if(!msg)return;
+
+  if(!STATE.tcChats[m.id])STATE.tcChats[m.id]=[];
+  STATE.tcChats[m.id].push({role:'user',content:msg});
+  input.value='';input.style.height='auto';
+  STATE.generating[m.id]='chat';
+  renderDebriefPane(m);
+
+  // Build transcript context
+  const transcripts=STATE.transcripts[m.id]||[];
+  const transcriptContext=transcripts.map(t=>`=== ${t.title}${t.date?' ('+new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+')':''}  ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,24000);
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:STATE.model,max_tokens:800,
+        system:`You are Doss, a sales intelligence tool. You have access to transcripts from prior sales calls. Answer questions about what was discussed — be specific and quote directly from the transcript when relevant. Be concise and direct.\n\nPRIOR CALL TRANSCRIPTS:\n${transcriptContext}`,
+        messages:STATE.tcChats[m.id].map(x=>({role:x.role,content:x.content}))})});
+    const data=await res.json();
+    const reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    STATE.tcChats[m.id].push({role:'assistant',content:reply});
+    saveState();
+  }catch(e){STATE.tcChats[m.id].push({role:'assistant',content:'Error. Check your API key.'});}
+
+  delete STATE.generating[m.id];
+  renderDebriefPane(m);
 }
 
 // ── TOC ──
@@ -532,6 +759,8 @@ IMPORTANT — ATTENDEE DATA:
 - Research each DISPLAY NAME independently via web search.
 - Clearly separate internal team members from external prospects.
 
+{{PRIOR_CALL_CONTEXT}}
+
 Format:
 ## Who You're Meeting
 For each EXTERNAL attendee: Name, title, company, LinkedIn context, time in role.
@@ -540,13 +769,13 @@ For each EXTERNAL attendee: Name, title, company, LinkedIn context, time in role
 What they do, size, funding stage, industry, revenue if findable, finance team size if discoverable.
 
 ## Aleph Fit Signal
-ICP match strength. What data sources do they likely run? Spreadsheet-heavy or already on a planning tool? FP&A maturity signals.
+ICP match strength. Data sources they likely run? Spreadsheet-heavy or already on a planning tool? FP&A maturity signals.
 
 ## Buyer Psychology Profile
 For each external attendee: spreadsheet-native vs web-app mindset, finance sophistication, startup vs enterprise DNA, communication style.
 
 ## Picture Behind the Picture
-Why evaluating now? Business pain that triggered this? Internal political landscape. Budget cycle timing.
+Why evaluating now? Business pain? Internal political landscape. Budget cycle timing.
 
 ## What You Don't Know
 3-5 specific intelligence gaps to close on the call.
@@ -562,7 +791,21 @@ One clear, specific outcome.
 
 Research deeply. Be specific — names, numbers, real context. No filler. Direct warm tone. Markdown.`;
 
-function getBriefPrompt(){const c=STATE.briefTemplate.trim();if(!c)return DEFAULT_BRIEF_PROMPT;return`You are Doss, a sales intelligence tool for an AE at Aleph.\n${ALEPH_CONTEXT}\n\nBuild a pre-call brief following these instructions. Research deeply. Be specific. No filler. Markdown.\n\nINSTRUCTIONS:\n${c}`;}
+function getBriefPrompt(meetingId){
+  const custom=STATE.briefTemplate.trim();
+  let base=custom?`You are Doss, a sales intelligence tool for an AE at Aleph.\n${ALEPH_CONTEXT}\n\nBuild a pre-call brief following these instructions. Research deeply. Be specific. No filler. Markdown.\n\nINSTRUCTIONS:\n{{PRIOR_CALL_CONTEXT}}\n${custom}`:DEFAULT_BRIEF_PROMPT;
+
+  // Inject prior call context if available
+  const transcripts=STATE.transcripts[meetingId];
+  if(transcripts&&transcripts.length>0){
+    const ctx=transcripts.map(t=>`=== ${t.title}${t.date?' ('+new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+')':''}  ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,14000);
+    const priorBlock=`PRIOR CALL TRANSCRIPTS — THIS IS YOUR PRIMARY INTELLIGENCE SOURCE. These are verbatim transcripts from previous calls with this prospect. Everything the prospect said, every signal, every objection, every moment of enthusiasm — it's all here. Weight this above public research.\n\n${ctx}\n\nAFTER REVIEWING PRIOR CALLS, supplement with web research for anything still unknown.`;
+    base=base.replace('{{PRIOR_CALL_CONTEXT}}',priorBlock);
+  }else{
+    base=base.replace('{{PRIOR_CALL_CONTEXT}}','');
+  }
+  return base;
+}
 
 const FOLLOWUP_PROMPT=`You are Doss, helping an Account Executive at Aleph write a follow-up email after a sales call.
 ${ALEPH_CONTEXT}
@@ -573,7 +816,7 @@ Read the transcript and write one follow-up email. Rules:
 - Reference what was actually discussed, use their words and phrases back to them
 - End with ONE concrete next step or proposed time
 - No bullet points, no em dashes, no "Best regards", no formal sign-off
-- Sound completely human — if it reads like AI wrote it, rewrite it
+- Sound completely human
 
 Return ONLY the email text. No subject line, no preamble, no explanation.`;
 
@@ -585,17 +828,18 @@ async function generateBrief(m){
   const ext=(m.attendees||[]).filter(a=>{const d=a.email?.includes('@')?a.email.split('@')[1].toLowerCase():'';return d&&d!==org&&!d.includes('resource.calendar.google.com');});
   const intNames=(m.attendees||[]).filter(a=>{const d=a.email?.includes('@')?a.email.split('@')[1].toLowerCase():'';return d===org;}).map(a=>a.name||a.email).join(', ');
   const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''} | Domain: ${a.email?.includes('@')?a.email.split('@')[1]:''}`).join('\n')||'- No external attendee details';
+  const hasPriorCalls=(STATE.transcripts[m.id]||[]).length>0;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:STATE.model,max_tokens:4000,stream:true,system:getBriefPrompt(),
-        messages:[{role:'user',content:`Build a dossier. ONLY research EXTERNAL attendees. Do NOT mention anyone from my company (${org||'my company'}).\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n${m.location?'Location: '+m.location:''}\n\nEXTERNAL ATTENDEES:\n${attInfo}\n\n${intNames?'Internal (SKIP): '+intNames:''}`}],
+      body:JSON.stringify({model:STATE.model,max_tokens:4000,stream:true,system:getBriefPrompt(m.id),
+        messages:[{role:'user',content:`Build a dossier. ONLY research EXTERNAL attendees. Do NOT mention anyone from my company (${org||'my company'}).\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n${m.location?'Location: '+m.location:''}\n\nEXTERNAL ATTENDEES:\n${attInfo}\n\n${intNames?'Internal (SKIP): '+intNames:''}\n\n${hasPriorCalls?'NOTE: Prior call transcripts have been injected into the system prompt. Lead with what was uncovered in those calls.':''}`}],
         tools:[{type:'web_search_20250305',name:'web_search'}]})});
     const ct=res.headers.get('content-type')||'';
     if(!res.ok||!ct.includes('text/event-stream')){
       const data=await res.json();if(data.error)throw new Error(data.error.message);
       const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
-      STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned. Try again.</p>';
+      STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned.</p>';
     }else{
       const reader=res.body.getReader(),decoder=new TextDecoder();
       let rawText='',buffer='',blockType=null,blockName=null,toolBuf='';
@@ -609,7 +853,7 @@ async function generateBrief(m){
           try{
             const ev=JSON.parse(js);
             if(ev.type==='content_block_start'){blockType=ev.content_block?.type;blockName=ev.content_block?.name||null;toolBuf='';}
-            if(ev.type==='content_block_stop'){blockType=null;blockName=null;toolBuf='';}
+            if(ev.type==='content_block_stop'){blockType=null;blockName=null;}
             if(ev.type==='content_block_delta'&&blockType==='tool_use'&&blockName==='web_search'){
               toolBuf+=(ev.delta?.partial_json||'');
               const q=toolBuf.match(/"query"\s*:\s*"([^"\\]*)/);
@@ -632,25 +876,39 @@ async function generateBrief(m){
 }
 function copyBrief(){const el=document.querySelector('.brief-paper');if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();}}
 
-// ── FOLLOW-UP ──
+// ── FOLLOW-UP EMAIL ──
 async function runFollowup(m){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter API key in Settings.');return;}
-  const t=STATE.followups[m.id]?.transcript?.trim();if(!t){alert('Paste transcript first.');return;}
+  const transcripts=STATE.transcripts[m.id];
+  const hasTranscripts=transcripts&&transcripts.length>0;
+  const pasteText=STATE.followups[m.id]?.transcript?.trim();
+  if(!hasTranscripts&&!pasteText){alert('Paste a transcript first.');return;}
+
   STATE.generating[m.id]='followup';renderDebriefPane(m);updateActionBtns(m);
-  const briefCtx=STATE.briefs[m.id]?`Pre-call dossier context:\n${htmlToText(STATE.briefs[m.id]).slice(0,1000)}`:'';
+
+  // Use full transcripts or paste fallback
+  let transcriptContent='';
+  if(hasTranscripts){
+    transcriptContent=transcripts.map(t=>`=== ${t.title} ===\n${t.transcript}`).join('\n\n---\n\n').slice(0,12000);
+  }else{
+    transcriptContent=pasteText;
+  }
+
   const ai=(m.attendees||[]).map(a=>`${a.name||'?'} (${a.email||''})`).join(', ');
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:STATE.model,max_tokens:600,
-        system:`${FOLLOWUP_PROMPT}\n\nMeeting: ${m.title}\nAttendees: ${ai}\n${briefCtx}`,
-        messages:[{role:'user',content:`Transcript:\n\n${t}`}]})});
+        system:`${FOLLOWUP_PROMPT}\n\nMeeting: ${m.title}\nAttendees: ${ai}`,
+        messages:[{role:'user',content:`Transcript:\n\n${transcriptContent}`}]})});
     const data=await res.json();
+    if(!STATE.followups[m.id])STATE.followups[m.id]={transcript:'',email:null};
     STATE.followups[m.id].email=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
   }catch(e){console.error(e);STATE.followups[m.id].email='Error writing email. Try again.';}
+
   delete STATE.generating[m.id];saveState();renderDebriefPane(m);updateActionBtns(m);
   const pillBtn=document.querySelector('.pill-opt[data-tab="debrief"]');
-  if(pillBtn&&STATE.followups[m.id]?.email&&!pillBtn.querySelector('.pill-dot')){pillBtn.insertAdjacentHTML('beforeend','<span class="pill-dot"></span>');}
+  if(pillBtn&&STATE.followups[m.id]?.email&&!pillBtn.querySelector('.pill-dot'))pillBtn.insertAdjacentHTML('beforeend','<span class="pill-dot"></span>');
 }
 
 // ── DAY NAV ──
@@ -686,10 +944,24 @@ document.getElementById('todayBtn').addEventListener('click',async()=>{
   if(STATE.dayCache[key])renderMeetingList();else if(STATE.accessToken)await loadCurrentDay();else renderMeetingList();
   document.getElementById('mainPanel').innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier.</p></div>`;
 });
+
+// API keys
 const savedKey=localStorage.getItem('doss_apikey');
 if(savedKey){document.getElementById('apiKey').value=savedKey;document.getElementById('apiBar').classList.toggle('connected',savedKey.startsWith('sk-ant-'));}
 document.getElementById('apiKey').addEventListener('input',e=>{const v=e.target.value;document.getElementById('apiBar').classList.toggle('connected',v.startsWith('sk-ant-'));localStorage.setItem('doss_apikey',v);});
+
+const savedFathom=localStorage.getItem('doss_fathomkey');
+if(savedFathom){document.getElementById('fathomKey').value=savedFathom;document.getElementById('fathomBar').classList.add('connected');document.getElementById('fathomDot').style.background='var(--green)';}
+document.getElementById('fathomKey').addEventListener('input',e=>{
+  const v=e.target.value.trim();
+  const bar=document.getElementById('fathomBar'),dot=document.getElementById('fathomDot');
+  if(v){bar.classList.add('connected');dot.style.background='var(--green)';}
+  else{bar.classList.remove('connected');dot.style.background='';}
+  localStorage.setItem('doss_fathomkey',v);
+});
+
 document.getElementById('settingsBtn').addEventListener('click',()=>{const p=document.getElementById('settingsPanel'),b=document.getElementById('settingsBtn');p.classList.toggle('open');b.classList.toggle('active',p.classList.contains('open'));});
+
 const templateEl=document.getElementById('briefTemplate');
 templateEl.value=STATE.briefTemplate;
 let briefSaveTimer;
