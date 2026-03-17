@@ -594,12 +594,10 @@ function updateActionBtns(meeting){
   }else if(STATE.activeTab==='dealroom'){
     if(isGenBrief){
       wrap.innerHTML=`<button class="gen-btn" disabled><span class="spinner"></span> Generating…</button>`;
-    }else if(hasContext){
-      wrap.innerHTML=`<button class="gen-btn secondary" id="btnSEBrief" title="Technical brief for your SE — demo sequence, branch points, gaps">SE Brief</button><button class="gen-btn" id="btnAEBrief" title="Informed AE brief built from prior call transcripts">AE Brief</button>`;
+    }else{
+      wrap.innerHTML=`<button class="gen-btn secondary" id="btnSEBrief" title="Technical brief for your SE — demo sequence, branch points, gaps">SE Brief</button><button class="gen-btn" id="btnAEBrief" title="${hasContext?'Informed AE brief built from prior call transcripts':'AE brief — gather context first for full intelligence'}">AE Brief</button>`;
       document.getElementById('btnSEBrief')?.addEventListener('click',()=>generateSEBrief(meeting));
       document.getElementById('btnAEBrief')?.addEventListener('click',()=>generateBrief(meeting));
-    }else{
-      wrap.innerHTML='';
     }
   }else{
     wrap.innerHTML='';
@@ -809,12 +807,13 @@ async function gatherFathomContext(m){
   }
   delete STATE.gatheringContext[m.id];
   renderDealRoomPane(m);
+  updateActionBtns(m);
 }
 
 function clearTranscripts(id){
   delete STATE.transcripts[id];STATE.tcChats[id]=[];saveState();
   const m=getCurrentMeetings().find(x=>x.id===id);
-  if(m)renderDealRoomPane(m);
+  if(m){renderDealRoomPane(m);updateActionBtns(m);}
 }
 
 // ── DEAL ROOM CHAT ──
@@ -1079,6 +1078,13 @@ function getBriefPrompt(meetingId){
 // ── GENERATE BRIEF ──
 async function generateBrief(m){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter your Anthropic API key in Settings.');return;}
+  // Switch to brief tab if called from deal room
+  if(STATE.activeTab!=='brief'){
+    STATE.activeTab='brief';
+    document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab==='brief'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab==='brief'));
+    positionPillSlider('brief');
+  }
   STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
   const org=STATE.orgDomain||'';
   const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
