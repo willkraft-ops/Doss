@@ -583,6 +583,7 @@ function positionPillSlider(tab){
 function updateActionBtns(meeting){
   const wrap=document.getElementById('actionBtns');if(!wrap)return;
   const hasBrief=!!STATE.briefs[meeting.id],isGenBrief=STATE.generating[meeting.id]==='brief';
+  const hasContext=Array.isArray(STATE.transcripts[meeting.id])&&STATE.transcripts[meeting.id].length>0;
   if(STATE.activeTab==='brief'){
     if(isGenBrief)wrap.innerHTML=`<button class="gen-btn" disabled><span class="spinner"></span> Generating…</button>`;
     else if(hasBrief)wrap.innerHTML=`<button class="gen-btn secondary" id="btnRegen">↻ Regenerate</button><button class="gen-btn secondary" id="btnCopy">Copy</button>`;
@@ -590,6 +591,16 @@ function updateActionBtns(meeting){
     document.getElementById('btnGen')?.addEventListener('click',()=>generateBrief(meeting));
     document.getElementById('btnRegen')?.addEventListener('click',()=>generateBrief(meeting));
     document.getElementById('btnCopy')?.addEventListener('click',copyBrief);
+  }else if(STATE.activeTab==='dealroom'){
+    if(isGenBrief){
+      wrap.innerHTML=`<button class="gen-btn" disabled><span class="spinner"></span> Generating…</button>`;
+    }else if(hasContext){
+      wrap.innerHTML=`<button class="gen-btn secondary" id="btnSEBrief" title="Technical brief for your SE — demo sequence, branch points, gaps">SE Brief</button><button class="gen-btn" id="btnAEBrief" title="Informed AE brief built from prior call transcripts">AE Brief</button>`;
+      document.getElementById('btnSEBrief')?.addEventListener('click',()=>generateSEBrief(meeting));
+      document.getElementById('btnAEBrief')?.addEventListener('click',()=>generateBrief(meeting));
+    }else{
+      wrap.innerHTML='';
+    }
   }else{
     wrap.innerHTML='';
   }
@@ -927,6 +938,83 @@ VS SPREADSHEET-FIRST TOOLS (Cube, Datarails, Vena): Aleph wins on product qualit
 PRICING: $1,500–$2,500/month platform + $75–200/month per user. No implementation fee. Trial with customer's own data.
 KNOWN CUSTOMERS: Webflow, Turo, Notion, Zapier.`;
 
+const SE_BRIEF_PROMPT=`You are Doss, generating a pre-demo technical brief for an Aleph SE.
+${ALEPH_CONTEXT}
+
+WILL KRAFT is the AE. He appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people (Kristen, Jeremy, Alex, Ritvik, Tom) are his colleagues, not the prospect.
+
+STANDARD ALEPH DEMO SPINE (reference only — sequence below overrides this):
+Integrations → Tables & data layer → Mappings → Spreadsheet add-in (Explorer, Connect, AI Scan) → Dashboards → Headcount planning → Automations & scenarios
+
+NATURAL BRANCH POINTS:
+- Multi-entity/consolidation pain → calculated tables, consolidated P&L
+- Snowflake/data warehouse → SQL exposure, cross-source joins on platform
+- Department visibility asked early → show permissions early, don't save it
+- Forecasting/scenario pain → scenario management, actuals roll-forward
+- Already live on a competitor → DO NOT lead with features. Establish what their current tool can't do first. The IncidentIQ loss is the model of what happens when you skip this.
+- Headcount is the hook → spend real time on the full template flow, not a flyby
+- Carta/gap question → acknowledge cleanly, name both workarounds (Snowflake table or CSV schedule), move on. Never promise roadmap as a close.
+
+Analyze the prior call transcripts and produce:
+
+## Who's In the Room
+For each prospect contact: name, title, what they actually said mattered to them, technical comfort level (SQL-aware? spreadsheet-native? executive?). Quote the transcript — don't guess.
+
+## Their Stack
+Every system mentioned. For each: integration status (native/CSV/workaround needed), complexity flags, anything that's a painful manual process today.
+
+## Recommended Demo Sequence
+This is NOT the standard tour. Based on their stated pain, give a specific ordered sequence. Name what to lead with and why. Name what to skip or keep short. Be opinionated.
+
+## Expected Branch Points
+Where will they pull you off-script? For each: what they'll likely ask, what to show, what to say.
+
+## What NOT to Demo or Promise
+Explicit list. Anything on roadmap but not live, any product gaps vs their current tool, any out-of-scope requests. For each: state it and give the redirect. Clean acknowledge + workaround + move on.
+
+## They Will Ask...
+3–5 specific technical questions likely based on their stack and stated pain. For each: the right answer.
+
+## Displacement Angle
+If they're on a competitor (Planful, Cube, Datarails, Vena, etc.), name it. What specifically can't that tool do that Aleph does? This needs to be established in the opening orientation, before screen share — not discovered mid-demo.
+
+## One-Line Technical Fit Assessment
+Clean fit, workable with caveats, or risk? One sentence. Be direct.
+
+Quote the transcript. No filler. Markdown.`;
+
+const INFORMED_BRIEF_PROMPT=`You are Doss, generating an informed pre-call brief for Will Kraft, AE at Aleph.
+${ALEPH_CONTEXT}
+
+WILL'S IDENTITY: Will Kraft is the AE. He appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people are his colleagues.
+
+Prior call transcripts are your PRIMARY source. Public research supplements only what the transcripts don't cover.
+
+{{PRIOR_CALL_CONTEXT}}
+
+## The Deal So Far
+2–3 sentences. What happened across the calls, the energy and momentum, where this stands right now. Be direct — hot, warm, or stalled.
+
+## What They've Actually Told You
+The most valuable signal from the transcripts. Quote their words. Their pain in their language. What landed. What they pushed back on. What they said about their current setup, budget, timeline, decision process.
+
+## Who Owns This
+Real buyer, champion, potential blocker. If internal politics are visible in the transcripts, surface them.
+
+## Where This Deal Could Go Wrong
+Specific risks from what was actually said. If they named a competitor, name it and name the gap they implied. If they named a blocker, address it. Not generic risks — risks from this conversation.
+
+## What You Still Don't Know
+3–5 specific gaps from prior calls that weren't closed. These are your discovery priorities going in.
+
+## Going In
+5–7 questions informed by what you already know. Not cold discovery — questions that advance the deal, validate assumptions from prior calls, or surface what still needs to happen to move forward.
+
+## Next Step Hypothesis
+Based on where they are, what's the ideal outcome of this call? What does "yes" look like right now?
+
+No filler. Direct warm tone. Markdown.`;
+
 const DEFAULT_BRIEF_PROMPT=`You are Doss, an elite sales intelligence tool supporting an Account Executive at Aleph.
 ${ALEPH_CONTEXT}
 
@@ -970,11 +1058,13 @@ Research deeply. Be specific — names, numbers, real context. No filler. Direct
 
 function getBriefPrompt(meetingId){
   const custom=STATE.briefTemplate.trim();
+  const transcripts=STATE.transcripts[meetingId];
+  const hasPrior=Array.isArray(transcripts)&&transcripts.length>0;
+  // When prior transcripts exist and no custom template, use the informed brief prompt
   let base=custom
     ?`You are Doss, a sales intelligence tool for an AE at Aleph.\n${ALEPH_CONTEXT}\n\nBuild a pre-call brief following these instructions. Research deeply. Be specific. No filler. Markdown.\n\n{{PRIOR_CALL_CONTEXT}}\n\nINSTRUCTIONS:\n${custom}`
-    :DEFAULT_BRIEF_PROMPT;
-  const transcripts=STATE.transcripts[meetingId];
-  if(Array.isArray(transcripts)&&transcripts.length>0){
+    :(hasPrior?INFORMED_BRIEF_PROMPT:DEFAULT_BRIEF_PROMPT);
+  if(hasPrior){
     const ctx=transcripts.map((t,i)=>{
       const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
       return`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${t.title}${date?' — '+date:''} ===\n${t.transcript}`;
@@ -1041,6 +1131,59 @@ async function generateBrief(m){
   delete STATE.generating[m.id];saveState();renderMeetingList();renderBriefPane(m);updateActionBtns(m);
 }
 function copyBrief(){const el=document.querySelector('.brief-paper');if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();}}
+
+// ── GENERATE SE BRIEF ──
+async function generateSEBrief(m){
+  const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter your Anthropic API key in Settings.');return;}
+  STATE.activeTab='brief';
+  document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab==='brief'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab==='brief'));
+  positionPillSlider('brief');
+  STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
+  const transcripts=STATE.transcripts[m.id]||[];
+  const transcriptContext=transcripts.map((t,i)=>{
+    const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    return`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${t.title}${date?' — '+date:''} ===\n${t.transcript}`;
+  }).join('\n\n---\n\n').slice(0,60000);
+  const org=STATE.orgDomain||'';
+  const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
+  const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''}`).join('\n')||'- No external attendee details';
+  const systemPrompt=`${SE_BRIEF_PROMPT}\n\nPRIOR CALL TRANSCRIPTS — PRIMARY INTELLIGENCE SOURCE:\n\n${transcriptContext||'No prior transcripts loaded.'}`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:STATE.model,max_tokens:3000,stream:true,system:systemPrompt,
+        messages:[{role:'user',content:`Generate a pre-demo SE brief.\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n\nExternal attendees:\n${attInfo}`}]})});
+    const ct=res.headers.get('content-type')||'';
+    if(!res.ok||!ct.includes('text/event-stream')){
+      const data=await res.json();if(data.error)throw new Error(data.error.message);
+      const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
+      STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned.</p>';
+    }else{
+      const reader=res.body.getReader(),decoder=new TextDecoder();
+      let rawText='',buffer='';
+      while(true){
+        const{done,value}=await reader.read();if(done)break;
+        buffer+=decoder.decode(value,{stream:true});
+        const lines=buffer.split('\n');buffer=lines.pop()||'';
+        for(const line of lines){
+          if(!line.startsWith('data: '))continue;
+          const js=line.slice(6).trim();if(js==='[DONE]')continue;
+          try{
+            const ev=JSON.parse(js);
+            if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
+              rawText+=ev.delta.text;STATE.briefs[m.id]=markdownToHtml(rawText);
+              const t=document.getElementById('streamTarget');if(t){t.innerHTML=STATE.briefs[m.id];buildToc();}
+            }
+          }catch(pe){continue;}
+        }
+      }
+      if(rawText)STATE.briefs[m.id]=markdownToHtml(rawText);
+      else if(!STATE.briefs[m.id])STATE.briefs[m.id]='<p style="color:var(--text-muted)">Try regenerating.</p>';
+    }
+  }catch(e){console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;}
+  delete STATE.generating[m.id];saveState();renderMeetingList();renderBriefPane(m);updateActionBtns(m);
+}
 
 // ── DAY NAV ──
 async function navigateDay(offset){
