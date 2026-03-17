@@ -1051,6 +1051,7 @@ async function navigateDay(offset){
 }
 
 // ── UTILS ──
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function safeAttr(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;');}
 
 function markdownToHtml(t){
