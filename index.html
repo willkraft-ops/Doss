@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Doss — Daily Dossier</title>
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -358,7 +357,6 @@ const STATE={
   timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
   briefs:{},transcripts:{},tcChats:{},
   generating:{},gatheringContext:{},
-  meetingIndex:{},contextFetchTime:{},
   model:'claude-sonnet-4-20250514',
   briefTemplate:localStorage.getItem('doss_template')||'',
 };
@@ -367,18 +365,13 @@ function saveState(){
   try{
     localStorage.setItem('doss_briefs',JSON.stringify(STATE.briefs));
     localStorage.setItem('doss_tcchats',JSON.stringify(STATE.tcChats));
-    localStorage.setItem('doss_mindex',JSON.stringify(STATE.meetingIndex));
-    localStorage.setItem('doss_fetchtime',JSON.stringify(STATE.contextFetchTime));
   }catch(e){console.warn('State save failed:',e);}
 }
 function loadState(){
   try{
     const b=localStorage.getItem('doss_briefs'),c=localStorage.getItem('doss_tcchats');
-    const mi=localStorage.getItem('doss_mindex'),ft=localStorage.getItem('doss_fetchtime');
     if(b)STATE.briefs=JSON.parse(b);
     if(c)STATE.tcChats=JSON.parse(c);
-    if(mi)STATE.meetingIndex=JSON.parse(mi);
-    if(ft)STATE.contextFetchTime=JSON.parse(ft);
   }catch(e){}
 }
 loadState();
@@ -453,11 +446,7 @@ async function loadDay(date){
   if(!STATE.orgDomain&&all.length>0)STATE.orgDomain=detectOrgDomain(all);
   const ext=all.filter(m=>isExternal(m,STATE.orgDomain));
   ext.sort((a,b)=>new Date(a.startTime)-new Date(b.startTime));
-  STATE.dayCache[key]=ext;
-  // Persist to meetingIndex so search works across all time, not just loaded days
-  ext.forEach(m=>{STATE.meetingIndex[m.id]={id:m.id,title:m.title,startTime:m.startTime,endTime:m.endTime,attendees:m.attendees,dateKey:key};});
-  try{localStorage.setItem('doss_mindex',JSON.stringify(STATE.meetingIndex));}catch(e){}
-  return ext;
+  STATE.dayCache[key]=ext;return ext;
 }
 async function loadCurrentDay(){
   document.getElementById('meetingList').innerHTML='<div style="padding:18px;text-align:center;color:var(--dk-text-muted);font-size:13px;"><div class="spinner dark" style="margin:0 auto 8px;"></div>Loading…</div>';
@@ -485,35 +474,36 @@ function initSearch(){
   input.addEventListener('input',()=>{
     const q=input.value.trim().toLowerCase();
     if(!q){results.classList.remove('open');return;}
-    // Search meetingIndex (all-time) not just dayCache (this session)
+    // Search across all cached days
     const matches=[];
-    Object.values(STATE.meetingIndex).forEach(m=>{
-      const titleMatch=m.title.toLowerCase().includes(q);
-      const attendeeMatch=(m.attendees||[]).some(a=>(a.name||'').toLowerCase().includes(q)||(a.email||'').toLowerCase().includes(q));
-      if(titleMatch||attendeeMatch)matches.push(m);
+    Object.entries(STATE.dayCache).forEach(([dateKey,meetings])=>{
+      meetings.forEach(m=>{
+        const titleMatch=m.title.toLowerCase().includes(q);
+        const attendeeMatch=(m.attendees||[]).some(a=>(a.name||'').toLowerCase().includes(q)||(a.email||'').toLowerCase().includes(q));
+        if(titleMatch||attendeeMatch){
+          matches.push({m,dateKey});
+        }
+      });
     });
     matches.sort((a,b)=>b.dateKey.localeCompare(a.dateKey));
     if(matches.length===0){
       results.innerHTML=`<div class="search-empty">No meetings found</div>`;
     }else{
-      results.innerHTML=matches.slice(0,8).map(m=>{
-        const d=new Date(m.dateKey+'T12:00:00');
+      results.innerHTML=matches.slice(0,8).map(({m,dateKey})=>{
+        const d=new Date(dateKey+'T12:00:00');
         const label=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-        return`<div class="search-result" data-id="${m.id}" data-date="${m.dateKey}">
+        return`<div class="search-result" data-id="${m.id}" data-date="${dateKey}">
           <div class="search-result-name">${esc(m.title)}</div>
           <div class="search-result-meta">${label} · ${formatTimeRange(m.startTime,m.endTime)}</div>
         </div>`;
       }).join('');
       results.querySelectorAll('.search-result').forEach(r=>{
-        r.addEventListener('click',async()=>{
+        r.addEventListener('click',()=>{
           const targetDate=new Date(r.dataset.date+'T12:00:00');
           STATE.currentDate=targetDate;
           STATE.activeMeetingId=r.dataset.id;
           STATE.activeTab='brief';
-          updateDateBar();
-          // Load the day if it's not already in dayCache
-          if(!STATE.dayCache[r.dataset.date])await loadDay(targetDate);
-          renderMeetingList();renderDetail();
+          updateDateBar();renderMeetingList();renderDetail();
           input.value='';results.classList.remove('open');
         });
       });
@@ -593,7 +583,6 @@ function positionPillSlider(tab){
 function updateActionBtns(meeting){
   const wrap=document.getElementById('actionBtns');if(!wrap)return;
   const hasBrief=!!STATE.briefs[meeting.id],isGenBrief=STATE.generating[meeting.id]==='brief';
-  const hasContext=Array.isArray(STATE.transcripts[meeting.id])&&STATE.transcripts[meeting.id].length>0;
   if(STATE.activeTab==='brief'){
     if(isGenBrief)wrap.innerHTML=`<button class="gen-btn" disabled><span class="spinner"></span> Generating…</button>`;
     else if(hasBrief)wrap.innerHTML=`<button class="gen-btn secondary" id="btnRegen">↻ Regenerate</button><button class="gen-btn secondary" id="btnCopy">Copy</button>`;
@@ -601,14 +590,6 @@ function updateActionBtns(meeting){
     document.getElementById('btnGen')?.addEventListener('click',()=>generateBrief(meeting));
     document.getElementById('btnRegen')?.addEventListener('click',()=>generateBrief(meeting));
     document.getElementById('btnCopy')?.addEventListener('click',copyBrief);
-  }else if(STATE.activeTab==='dealroom'){
-    if(isGenBrief){
-      wrap.innerHTML=`<button class="gen-btn" disabled><span class="spinner"></span> Generating…</button>`;
-    }else{
-      wrap.innerHTML=`<button class="gen-btn secondary" id="btnSEBrief" title="Technical brief for your SE — demo sequence, branch points, gaps">SE Brief</button><button class="gen-btn" id="btnAEBrief" title="${hasContext?'Informed AE brief built from prior call transcripts':'AE brief — gather context first for full intelligence'}">AE Brief</button>`;
-      document.getElementById('btnSEBrief')?.addEventListener('click',()=>generateSEBrief(meeting));
-      document.getElementById('btnAEBrief')?.addEventListener('click',()=>generateBrief(meeting));
-    }
   }else{
     wrap.innerHTML='';
   }
@@ -659,14 +640,10 @@ function renderDealRoomPane(m){
   }else if(hasTranscripts){
     ctxIconHtml=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>`;
     const count=transcripts.length;
-    const fetchedAgo=timeAgo(STATE.contextFetchTime[m.id]);
-    const callList=transcripts.map(t=>{
-      const d=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-      return`<span style="display:block;font-size:10.5px;color:var(--dk-text-secondary);line-height:1.6;">${esc(t.title||'Untitled')}${d?` <span style="color:var(--dk-text-muted)">— ${d}</span>`:''}</span>`;
-    }).join('');
-    ctxTitle=`${count} call${count!==1?'s':''} in context${fetchedAgo?` <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;margin-left:6px;">${fetchedAgo}</span>`:''}`;
-    ctxSub=`${callList}<span style="display:block;margin-top:4px;font-size:10.5px;"><a onclick="clearTranscripts('${m.id}')">Clear</a> · <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh</a></span>`;
-    ctxRight=`<div class="context-bar-badge">${count}</div>`;
+    const titles=transcripts.map(t=>t.title||'Call').join(' · ');
+    ctxTitle=`${count} prior call${count!==1?'s':''} in context`;
+    ctxSub=`${esc(titles.slice(0,55))}${titles.length>55?'…':''} · Last 6 months · <a onclick="clearTranscripts('${m.id}')">Clear</a> · <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh</a>`;
+    ctxRight=`<div class="context-bar-badge">${count} call${count!==1?'s':''}</div>`;
   }else if(Array.isArray(transcripts)&&transcripts.length===0){
     ctxIconHtml=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--dk-text-muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>`;
     ctxTitle='No prior recordings found';
@@ -788,6 +765,7 @@ async function gatherFathomContext(m){
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
     const params=new URLSearchParams({include_transcript:'true',limit:'100',created_after:sixMonthsAgo.toISOString()});
     externalDomains.forEach(d=>params.append('calendar_invitees_domains[]',d));
+    console.log('Doss: Fathom query params:', params.toString());
     const res=await fetch(`${proxyUrl}/meetings?${params}`,{
       headers:{'X-Fathom-Key':fathomKey,'Content-Type':'application/json'}
     });
@@ -814,8 +792,6 @@ async function gatherFathomContext(m){
     });
     const pillBtn=document.querySelector('.pill-opt[data-tab="dealroom"]');
     if(pillBtn&&STATE.transcripts[m.id].length>0&&!pillBtn.querySelector('.pill-dot'))pillBtn.insertAdjacentHTML('beforeend','<span class="pill-dot"></span>');
-    STATE.contextFetchTime[m.id]=Date.now();
-    saveState();
   }catch(e){
     console.error('Doss: Fathom error:',e);
     alert(`Fathom error: ${e.message}`);
@@ -823,13 +799,12 @@ async function gatherFathomContext(m){
   }
   delete STATE.gatheringContext[m.id];
   renderDealRoomPane(m);
-  updateActionBtns(m);
 }
 
 function clearTranscripts(id){
   delete STATE.transcripts[id];STATE.tcChats[id]=[];saveState();
   const m=getCurrentMeetings().find(x=>x.id===id);
-  if(m){renderDealRoomPane(m);updateActionBtns(m);}
+  if(m)renderDealRoomPane(m);
 }
 
 // ── DEAL ROOM CHAT ──
@@ -953,83 +928,6 @@ VS SPREADSHEET-FIRST TOOLS (Cube, Datarails, Vena): Aleph wins on product qualit
 PRICING: $1,500–$2,500/month platform + $75–200/month per user. No implementation fee. Trial with customer's own data.
 KNOWN CUSTOMERS: Webflow, Turo, Notion, Zapier.`;
 
-const SE_BRIEF_PROMPT=`You are Doss, generating a pre-demo technical brief for an Aleph SE.
-${ALEPH_CONTEXT}
-
-WILL KRAFT is the AE. He appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people (Kristen, Jeremy, Alex, Ritvik, Tom) are his colleagues, not the prospect.
-
-STANDARD ALEPH DEMO SPINE (reference only — sequence below overrides this):
-Integrations → Tables & data layer → Mappings → Spreadsheet add-in (Explorer, Connect, AI Scan) → Dashboards → Headcount planning → Automations & scenarios
-
-NATURAL BRANCH POINTS:
-- Multi-entity/consolidation pain → calculated tables, consolidated P&L
-- Snowflake/data warehouse → SQL exposure, cross-source joins on platform
-- Department visibility asked early → show permissions early, don't save it
-- Forecasting/scenario pain → scenario management, actuals roll-forward
-- Already live on a competitor → DO NOT lead with features. Establish what their current tool can't do first. The IncidentIQ loss is the model of what happens when you skip this.
-- Headcount is the hook → spend real time on the full template flow, not a flyby
-- Carta/gap question → acknowledge cleanly, name both workarounds (Snowflake table or CSV schedule), move on. Never promise roadmap as a close.
-
-Analyze the prior call transcripts and produce:
-
-## Who's In the Room
-For each prospect contact: name, title, what they actually said mattered to them, technical comfort level (SQL-aware? spreadsheet-native? executive?). Quote the transcript — don't guess.
-
-## Their Stack
-Every system mentioned. For each: integration status (native/CSV/workaround needed), complexity flags, anything that's a painful manual process today.
-
-## Recommended Demo Sequence
-This is NOT the standard tour. Based on their stated pain, give a specific ordered sequence. Name what to lead with and why. Name what to skip or keep short. Be opinionated.
-
-## Expected Branch Points
-Where will they pull you off-script? For each: what they'll likely ask, what to show, what to say.
-
-## What NOT to Demo or Promise
-Explicit list. Anything on roadmap but not live, any product gaps vs their current tool, any out-of-scope requests. For each: state it and give the redirect. Clean acknowledge + workaround + move on.
-
-## They Will Ask...
-3–5 specific technical questions likely based on their stack and stated pain. For each: the right answer.
-
-## Displacement Angle
-If they're on a competitor (Planful, Cube, Datarails, Vena, etc.), name it. What specifically can't that tool do that Aleph does? This needs to be established in the opening orientation, before screen share — not discovered mid-demo.
-
-## One-Line Technical Fit Assessment
-Clean fit, workable with caveats, or risk? One sentence. Be direct.
-
-Quote the transcript. No filler. Markdown.`;
-
-const INFORMED_BRIEF_PROMPT=`You are Doss, generating an informed pre-call brief for Will Kraft, AE at Aleph.
-${ALEPH_CONTEXT}
-
-WILL'S IDENTITY: Will Kraft is the AE. He appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people are his colleagues.
-
-Prior call transcripts are your PRIMARY source. Public research supplements only what the transcripts don't cover.
-
-{{PRIOR_CALL_CONTEXT}}
-
-## The Deal So Far
-2–3 sentences. What happened across the calls, the energy and momentum, where this stands right now. Be direct — hot, warm, or stalled.
-
-## What They've Actually Told You
-The most valuable signal from the transcripts. Quote their words. Their pain in their language. What landed. What they pushed back on. What they said about their current setup, budget, timeline, decision process.
-
-## Who Owns This
-Real buyer, champion, potential blocker. If internal politics are visible in the transcripts, surface them.
-
-## Where This Deal Could Go Wrong
-Specific risks from what was actually said. If they named a competitor, name it and name the gap they implied. If they named a blocker, address it. Not generic risks — risks from this conversation.
-
-## What You Still Don't Know
-3–5 specific gaps from prior calls that weren't closed. These are your discovery priorities going in.
-
-## Going In
-5–7 questions informed by what you already know. Not cold discovery — questions that advance the deal, validate assumptions from prior calls, or surface what still needs to happen to move forward.
-
-## Next Step Hypothesis
-Based on where they are, what's the ideal outcome of this call? What does "yes" look like right now?
-
-No filler. Direct warm tone. Markdown.`;
-
 const DEFAULT_BRIEF_PROMPT=`You are Doss, an elite sales intelligence tool supporting an Account Executive at Aleph.
 ${ALEPH_CONTEXT}
 
@@ -1041,45 +939,57 @@ IMPORTANT — ATTENDEE DATA:
 
 {{PRIOR_CALL_CONTEXT}}
 
-Format:
-## Who You're Meeting
-For each EXTERNAL attendee: Name, title, company, LinkedIn context, time in role.
+FORMAT RULES — this brief will be pasted into Slack:
+- Use short labeled blocks with a dash prefix, not document-style headers
+- Bold only the block labels using *label* Slack syntax
+- Keep each block tight — 1 to 4 lines max
+- No nested bullets, no long paragraphs, no decorative punctuation
+- Write like a sharp colleague wrote it in 10 minutes, not like a report
 
-## Company Snapshot
-What they do, size, funding stage, industry, revenue if findable, finance team size if discoverable.
+Output exactly these blocks in this order:
 
-## Aleph Fit Signal
-ICP match strength. Data sources they likely run? Spreadsheet-heavy or already on a planning tool? FP&A maturity signals.
+*Who You're Meeting*
+Each external attendee on one line: name, title, time in role. Skip internal.
 
-## Buyer Psychology Profile
-For each external attendee: spreadsheet-native vs web-app mindset, finance sophistication, startup vs enterprise DNA, communication style.
+*Backed By*
+Who backs them and which firm led the most recent round. VC or PE. If public or bootstrapped, say so. This is required — dig for it.
 
-## Picture Behind the Picture
-Why evaluating now? Business pain? Internal political landscape. Budget cycle timing.
+*Company*
+What they do, size, stage, revenue if findable. Two to three lines max.
 
-## What You Don't Know
-3-5 specific intelligence gaps to close on the call.
+*Their Stack*
+Data sources they run. ERPs, CRMs, HRIS, warehouse. One line each if multiple.
 
-## Discovery Questions
-5-7 prioritized natural-sounding questions. Bias toward current workflow pain, data sources, spreadsheet reliance, decision ownership.
+*Aleph Fit*
+ICP match strength in one sentence. What pain Aleph directly solves for them.
 
-## Landmines
-Objections, competitive threats (name specific competitors), deal risks.
+*Buyer Psychology*
+For each external attendee: how they think, what they care about, spreadsheet native or web-app bias.
 
-## Call Objective
-One clear, specific outcome.
+*Why Now*
+What triggered the evaluation. Business event, headcount change, audit pressure, board ask — whatever the signal is.
 
-Research deeply. Be specific — names, numbers, real context. No filler. Direct warm tone. Markdown.`;
+*What You Don't Know*
+3 to 5 gaps to close on the call. Specific, not generic.
+
+*Discovery Questions*
+5 to 7 questions. Natural, not formal. Bias toward pain, stack, and who owns the decision.
+
+*Landmines*
+Competitors they're talking to. Objections likely to come up. Deal risks.
+
+*Call Objective*
+One sentence. What does a win today look like.
+
+Research deeply. Be specific — names, numbers, real context. No filler.`;
 
 function getBriefPrompt(meetingId){
   const custom=STATE.briefTemplate.trim();
-  const transcripts=STATE.transcripts[meetingId];
-  const hasPrior=Array.isArray(transcripts)&&transcripts.length>0;
-  // When prior transcripts exist and no custom template, use the informed brief prompt
   let base=custom
     ?`You are Doss, a sales intelligence tool for an AE at Aleph.\n${ALEPH_CONTEXT}\n\nBuild a pre-call brief following these instructions. Research deeply. Be specific. No filler. Markdown.\n\n{{PRIOR_CALL_CONTEXT}}\n\nINSTRUCTIONS:\n${custom}`
-    :(hasPrior?INFORMED_BRIEF_PROMPT:DEFAULT_BRIEF_PROMPT);
-  if(hasPrior){
+    :DEFAULT_BRIEF_PROMPT;
+  const transcripts=STATE.transcripts[meetingId];
+  if(Array.isArray(transcripts)&&transcripts.length>0){
     const ctx=transcripts.map((t,i)=>{
       const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
       return`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${t.title}${date?' — '+date:''} ===\n${t.transcript}`;
@@ -1094,13 +1004,6 @@ function getBriefPrompt(meetingId){
 // ── GENERATE BRIEF ──
 async function generateBrief(m){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter your Anthropic API key in Settings.');return;}
-  // Switch to brief tab if called from deal room
-  if(STATE.activeTab!=='brief'){
-    STATE.activeTab='brief';
-    document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab==='brief'));
-    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab==='brief'));
-    positionPillSlider('brief');
-  }
   STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
   const org=STATE.orgDomain||'';
   const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
@@ -1154,59 +1057,6 @@ async function generateBrief(m){
 }
 function copyBrief(){const el=document.querySelector('.brief-paper');if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();}}
 
-// ── GENERATE SE BRIEF ──
-async function generateSEBrief(m){
-  const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter your Anthropic API key in Settings.');return;}
-  STATE.activeTab='brief';
-  document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab==='brief'));
-  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab==='brief'));
-  positionPillSlider('brief');
-  STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
-  const transcripts=STATE.transcripts[m.id]||[];
-  const transcriptContext=transcripts.map((t,i)=>{
-    const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    return`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${t.title}${date?' — '+date:''} ===\n${t.transcript}`;
-  }).join('\n\n---\n\n').slice(0,60000);
-  const org=STATE.orgDomain||'';
-  const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
-  const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''}`).join('\n')||'- No external attendee details';
-  const systemPrompt=`${SE_BRIEF_PROMPT}\n\nPRIOR CALL TRANSCRIPTS — PRIMARY INTELLIGENCE SOURCE:\n\n${transcriptContext||'No prior transcripts loaded.'}`;
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:STATE.model,max_tokens:3000,stream:true,system:systemPrompt,
-        messages:[{role:'user',content:`Generate a pre-demo SE brief.\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n\nExternal attendees:\n${attInfo}`}]})});
-    const ct=res.headers.get('content-type')||'';
-    if(!res.ok||!ct.includes('text/event-stream')){
-      const data=await res.json();if(data.error)throw new Error(data.error.message);
-      const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
-      STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned.</p>';
-    }else{
-      const reader=res.body.getReader(),decoder=new TextDecoder();
-      let rawText='',buffer='';
-      while(true){
-        const{done,value}=await reader.read();if(done)break;
-        buffer+=decoder.decode(value,{stream:true});
-        const lines=buffer.split('\n');buffer=lines.pop()||'';
-        for(const line of lines){
-          if(!line.startsWith('data: '))continue;
-          const js=line.slice(6).trim();if(js==='[DONE]')continue;
-          try{
-            const ev=JSON.parse(js);
-            if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
-              rawText+=ev.delta.text;STATE.briefs[m.id]=markdownToHtml(rawText);
-              const t=document.getElementById('streamTarget');if(t){t.innerHTML=STATE.briefs[m.id];buildToc();}
-            }
-          }catch(pe){continue;}
-        }
-      }
-      if(rawText)STATE.briefs[m.id]=markdownToHtml(rawText);
-      else if(!STATE.briefs[m.id])STATE.briefs[m.id]='<p style="color:var(--text-muted)">Try regenerating.</p>';
-    }
-  }catch(e){console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;}
-  delete STATE.generating[m.id];saveState();renderMeetingList();renderBriefPane(m);updateActionBtns(m);
-}
-
 // ── DAY NAV ──
 async function navigateDay(offset){
   STATE.currentDate.setDate(STATE.currentDate.getDate()+offset);STATE.activeMeetingId=null;updateDateBar();
@@ -1218,7 +1068,6 @@ async function navigateDay(offset){
 // ── UTILS ──
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function safeAttr(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;');}
-function timeAgo(ts){if(!ts)return'';const mins=Math.floor((Date.now()-ts)/60000);if(mins<1)return'just now';if(mins<60)return`${mins}m ago`;const hrs=Math.floor(mins/60);if(hrs<24)return`${hrs}h ago`;return`${Math.floor(hrs/24)}d ago`;}
 
 function markdownToHtml(t){
   if(!t)return'';
