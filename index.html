@@ -411,7 +411,13 @@ function initGoogleAuth(){
   });
   try{
     const s=JSON.parse(localStorage.getItem('doss_gtoken')||'null');
-    if(s&&s.token&&s.expiry>Date.now()){setGoogleSignedIn(s.token);loadCurrentDay();backgroundLoadWeek();return;}
+    if(s&&s.token&&s.expiry>Date.now()){
+      setGoogleSignedIn(s.token);
+      // Also fetch orgDomain on cached token restore — not just fresh OAuth
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${s.token}`}})
+        .then(r=>r.ok?r.json():null).then(ud=>{if(ud?.email)STATE.orgDomain=emailDomain(ud.email);}).catch(()=>{});
+      loadCurrentDay();backgroundLoadWeek();return;
+    }
   }catch(e){}
   setTimeout(()=>{if(!STATE.accessToken&&tokenClient)tokenClient.requestAccessToken({prompt:''});},500);
 }
@@ -1053,7 +1059,7 @@ Anything on roadmap but not live, product gaps, out-of-scope requests. For each:
 If they're on a competitor, name it. What can't that tool do that Aleph does? Establish this in the opening orientation before screen share.
 
 ## One-Line Technical Fit Assessment
-Clean fit, workable with caveats, or risk? One sentence. No hedging.\`
+Clean fit, workable with caveats, or risk? One sentence. No hedging.`;
 
 const INFORMED_BRIEF_PROMPT=`You are Doss, generating an informed pre-call brief for Will Kraft, AE at Aleph.
 ${ALEPH_CONTEXT}
@@ -1221,7 +1227,7 @@ async function generateSEBrief(m){
   const org=STATE.orgDomain||'';
   const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
   const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''}`).join('\n')||'- No external attendee details';
-  const systemPrompt=`${SE_BRIEF_PROMPT}\n\nPRIOR CALL TRANSCRIPTS — PRIMARY INTELLIGENCE SOURCE. Weight everything here above web research. Label all web research as [Research].\n\n${transcriptContext||'No prior transcripts loaded — rely on web research and label everything [Research].'}`;
+  const systemPrompt=`${SE_BRIEF_PROMPT}\n\nPRIOR CALL TRANSCRIPTS — YOUR PRIMARY SOURCE. Read these before anything else. Lead every section with what was actually said. Use web search only to fill gaps the transcripts don't cover.\n\n${transcriptContext||'No prior transcripts loaded — use web research only, keep it brief.'}`;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
