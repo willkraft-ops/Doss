@@ -395,11 +395,17 @@ function initGoogleAuth(){
   if(typeof google==='undefined'||!google.accounts){setTimeout(initGoogleAuth,200);return;}
   tokenClient=google.accounts.oauth2.initTokenClient({
     client_id:GOOGLE_CLIENT_ID,scope:CALENDAR_SCOPES,
-    callback:(r)=>{
+    callback:async(r)=>{
       if(r.access_token){
         const expiry=Date.now()+(55*60*1000);
         localStorage.setItem('doss_gtoken',JSON.stringify({token:r.access_token,expiry}));
-        setGoogleSignedIn(r.access_token);loadCurrentDay();backgroundLoadWeek();
+        setGoogleSignedIn(r.access_token);
+        // Reliably set orgDomain from the user's own identity — not inferred from attendees
+        try{
+          const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${r.access_token}`}});
+          if(ui.ok){const ud=await ui.json();if(ud.email)STATE.orgDomain=emailDomain(ud.email);}
+        }catch(e){console.warn('userinfo fetch failed:',e);}
+        loadCurrentDay();backgroundLoadWeek();
       }
     },
   });
@@ -423,7 +429,13 @@ async function fetchCalendarEvents(date){
   const params=new URLSearchParams({timeMin:s.toISOString(),timeMax:e.toISOString(),singleEvents:'true',orderBy:'startTime',maxResults:'50',timeZone:STATE.timezone});
   try{
     const res=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,{headers:{Authorization:`Bearer ${STATE.accessToken}`}});
-    if(res.status===401){STATE.accessToken=null;localStorage.removeItem('doss_gtoken');return[];}
+    if(res.status===401){
+      STATE.accessToken=null;localStorage.removeItem('doss_gtoken');
+      const btn=document.getElementById('googleBtn');
+      btn.classList.remove('signed-in');btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Reconnect Google';
+      if(tokenClient)setTimeout(()=>tokenClient.requestAccessToken({prompt:''}),300);
+      return[];
+    }
     const data=await res.json();
     return(data.items||[]).map(ev=>({
       id:ev.id,title:ev.summary||'Untitled',
@@ -594,24 +606,32 @@ function updateActionBtns(meeting){
   const wrap=document.getElementById('actionBtns');if(!wrap)return;
   const hasBrief=!!STATE.briefs[meeting.id],isGenBrief=STATE.generating[meeting.id]==='brief';
   const hasContext=Array.isArray(STATE.transcripts[meeting.id])&&STATE.transcripts[meeting.id].length>0;
+
+  if(isGenBrief){
+    wrap.innerHTML=`<button class="gen-btn" disabled><span class="spinner"></span> Generating…</button>`;
+    return;
+  }
+
+  // SE Brief is always surfaced when context exists — regardless of active tab
+  const seBriefBtn=hasContext?`<button class="gen-btn secondary" id="btnSEBrief" title="SE brief — demo sequence, stack, branch points, sourced strictly from transcripts + web">SE Brief</button>`:'';
+
   if(STATE.activeTab==='brief'){
-    if(isGenBrief)wrap.innerHTML=`<button class="gen-btn" disabled><span class="spinner"></span> Generating…</button>`;
-    else if(hasBrief)wrap.innerHTML=`<button class="gen-btn secondary" id="btnRegen">↻ Regenerate</button><button class="gen-btn secondary" id="btnCopy">Copy</button>`;
-    else wrap.innerHTML=`<button class="gen-btn" id="btnGen">Generate Dossier</button>`;
-    document.getElementById('btnGen')?.addEventListener('click',()=>generateBrief(meeting));
-    document.getElementById('btnRegen')?.addEventListener('click',()=>generateBrief(meeting));
-    document.getElementById('btnCopy')?.addEventListener('click',copyBrief);
-  }else if(STATE.activeTab==='dealroom'){
-    if(isGenBrief){
-      wrap.innerHTML=`<button class="gen-btn" disabled><span class="spinner"></span> Generating…</button>`;
+    if(hasBrief){
+      wrap.innerHTML=`${seBriefBtn}<button class="gen-btn secondary" id="btnRegen">↻ Regen</button><button class="gen-btn secondary" id="btnCopy">Copy</button>`;
     }else{
-      wrap.innerHTML=`<button class="gen-btn secondary" id="btnSEBrief" title="Technical brief for your SE — demo sequence, branch points, gaps">SE Brief</button><button class="gen-btn" id="btnAEBrief" title="${hasContext?'Informed AE brief built from prior call transcripts':'AE brief — gather context first for full intelligence'}">AE Brief</button>`;
-      document.getElementById('btnSEBrief')?.addEventListener('click',()=>generateSEBrief(meeting));
-      document.getElementById('btnAEBrief')?.addEventListener('click',()=>generateBrief(meeting));
+      wrap.innerHTML=`${seBriefBtn}<button class="gen-btn" id="btnGen">Generate Dossier</button>`;
     }
+  }else if(STATE.activeTab==='dealroom'){
+    wrap.innerHTML=`${seBriefBtn}<button class="gen-btn" id="btnAEBrief" title="${hasContext?'Informed AE brief built from prior call transcripts':'AE brief — gather context first for full intelligence'}">AE Brief</button>`;
   }else{
     wrap.innerHTML='';
   }
+
+  document.getElementById('btnGen')?.addEventListener('click',()=>generateBrief(meeting));
+  document.getElementById('btnRegen')?.addEventListener('click',()=>generateBrief(meeting));
+  document.getElementById('btnCopy')?.addEventListener('click',copyBrief);
+  document.getElementById('btnSEBrief')?.addEventListener('click',()=>generateSEBrief(meeting));
+  document.getElementById('btnAEBrief')?.addEventListener('click',()=>generateBrief(meeting));
 }
 
 // ── BRIEF PANE ──
@@ -850,10 +870,7 @@ async function sendDealRoomMsg(m){
   });
   const prospectNames=externalAttendees.map(a=>a.name||a.email).join(', ');
   const prospectDomains=[...new Set(externalAttendees.map(a=>emailDomain(a.email)))].join(', ');
-  const transcriptContext=transcripts.map((t,i)=>{
-    const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    return`=== ${i===0?'[MOST RECENT CALL]':'[PRIOR CALL]'} ${t.title}${date?' — '+date:''} ===\n${t.transcript}`;
-  }).join('\n\n---\n\n').slice(0,80000);
+  const transcriptContext=buildTranscriptContext(transcripts,80000);
 
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
@@ -940,6 +957,28 @@ function buildToc(){
   const first=tocCol.querySelector('.toc-item');if(first)first.classList.add('active');
 }
 
+// ── TRANSCRIPT CONTEXT BUILDER ──
+// Packs as many recent transcripts as fit within a character budget.
+// Each transcript gets an equal share, but no call is dropped in favor of
+// giving one call the entire budget. Recent calls always come first.
+function buildTranscriptContext(transcripts, charBudget){
+  if(!transcripts||!transcripts.length)return'';
+  const perBudget=Math.floor(charBudget/transcripts.length);
+  const parts=[];let remaining=charBudget;
+  for(let i=0;i<transcripts.length;i++){
+    if(remaining<500)break;
+    const t=transcripts[i];
+    const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    const header=`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${t.title}${date?' — '+date:''} ===\n`;
+    const alloc=Math.min(perBudget,remaining-header.length);
+    if(alloc<200)break;
+    const body=t.transcript.length>alloc?t.transcript.slice(0,alloc)+'…[truncated]':t.transcript;
+    parts.push(header+body);
+    remaining-=(header.length+body.length+15);
+  }
+  return parts.join('\n\n---\n\n');
+}
+
 // ── PROMPTS ──
 const ALEPH_CONTEXT=`
 WHAT YOU'RE SELLING — ALEPH:
@@ -953,12 +992,19 @@ VS SPREADSHEET-FIRST TOOLS (Cube, Datarails, Vena): Aleph wins on product qualit
 PRICING: $1,500–$2,500/month platform + $75–200/month per user. No implementation fee. Trial with customer's own data.
 KNOWN CUSTOMERS: Webflow, Turo, Notion, Zapier.`;
 
-const SE_BRIEF_PROMPT=`You are Doss, generating a pre-demo technical brief for an Aleph SE.
+const SE_BRIEF_PROMPT=`You are Doss, generating a pre-demo SE brief for an Aleph SE.
 ${ALEPH_CONTEXT}
 
-WILL KRAFT is the AE. He appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people (Kristen, Jeremy, Alex, Ritvik, Tom) are his colleagues, not the prospect.
+WILL KRAFT is the AE. He appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people (Kristen, Jeremy, Alex, Ritvik, Tom) are colleagues — not the prospect.
 
-STANDARD ALEPH DEMO SPINE (reference only — sequence below overrides this):
+SOURCE DISCIPLINE — NON-NEGOTIABLE:
+Every fact in this brief must carry its source. No exceptions.
+- [TRANSCRIPT — "exact quote"] for anything a prospect said directly. Always use their exact words.
+- [Research] for anything sourced from web search or public information.
+Never blend the two. Never use web research to "confirm" or "elaborate on" what was said in a call — that's how hallucinations get treated as ground truth. The SE will treat [TRANSCRIPT] as fact and [Research] as hypothesis. Do not blur this line.
+If something is unknown from transcripts AND unfindable via web search, write: Unknown — ask on call.
+
+STANDARD ALEPH DEMO SPINE (reference only — your recommended sequence overrides this):
 Integrations → Tables & data layer → Mappings → Spreadsheet add-in (Explorer, Connect, AI Scan) → Dashboards → Headcount planning → Automations & scenarios
 
 NATURAL BRANCH POINTS:
@@ -966,37 +1012,37 @@ NATURAL BRANCH POINTS:
 - Snowflake/data warehouse → SQL exposure, cross-source joins on platform
 - Department visibility asked early → show permissions early, don't save it
 - Forecasting/scenario pain → scenario management, actuals roll-forward
-- Already live on a competitor → DO NOT lead with features. Establish what their current tool can't do first. The IncidentIQ loss is the model of what happens when you skip this.
+- Already live on a competitor → DO NOT lead with features. Establish what their current tool can't do first.
 - Headcount is the hook → spend real time on the full template flow, not a flyby
 - Carta/gap question → acknowledge cleanly, name both workarounds (Snowflake table or CSV schedule), move on. Never promise roadmap as a close.
 
-Analyze the prior call transcripts and produce:
+Produce the following. Lead every section with transcript evidence. Use web search only to fill gaps transcripts don't cover, and label everything.
 
 ## Who's In the Room
-For each prospect contact: name, title, what they actually said mattered to them, technical comfort level (SQL-aware? spreadsheet-native? executive?). Quote the transcript — don't guess.
+For each prospect contact: name, title [TRANSCRIPT or Research], what they said mattered to them (quote exactly), technical comfort level — SQL-aware, spreadsheet-native, executive? Grounded in what they actually said.
 
 ## Their Stack
-Every system mentioned. For each: integration status (native/CSV/workaround needed), complexity flags, anything that's a painful manual process today.
+Every system mentioned on calls [TRANSCRIPT — "quote"]. For each: integration status (native / CSV / workaround needed), complexity flags, anything that's a painful manual process today. Use [Research] to fill likely stack from job postings, LinkedIn, public info — only where transcripts are silent, and label it.
 
 ## Recommended Demo Sequence
-This is NOT the standard tour. Based on their stated pain, give a specific ordered sequence. Name what to lead with and why. Name what to skip or keep short. Be opinionated.
+Not the standard tour. A specific opinionated sequence based on their stated pain. Name what to lead with and why — tied to a transcript moment. Name what to skip or keep short.
 
 ## Expected Branch Points
-Where will they pull you off-script? For each: what they'll likely ask, what to show, what to say.
+Where will they pull you off-script? For each: what they'll likely ask (grounded in what they actually said), what to show, what to say.
 
 ## What NOT to Demo or Promise
-Explicit list. Anything on roadmap but not live, any product gaps vs their current tool, any out-of-scope requests. For each: state it and give the redirect. Clean acknowledge + workaround + move on.
+Anything on roadmap but not live, product gaps, out-of-scope requests. For each: state it, give the redirect. Clean acknowledge + workaround + move on.
 
 ## They Will Ask...
-3–5 specific technical questions likely based on their stack and stated pain. For each: the right answer.
+3–5 specific technical questions based on their stack and stated pain. For each: the right answer. Tag whether the question is predicted from [TRANSCRIPT] or [Research].
 
 ## Displacement Angle
-If they're on a competitor (Planful, Cube, Datarails, Vena, etc.), name it. What specifically can't that tool do that Aleph does? This needs to be established in the opening orientation, before screen share — not discovered mid-demo.
+If they're on a competitor (Planful, Cube, Datarails, Vena, etc.), name it [TRANSCRIPT or Research]. What specifically can't that tool do that Aleph does? This needs to be established in the opening orientation before screen share — not discovered mid-demo.
 
 ## One-Line Technical Fit Assessment
-Clean fit, workable with caveats, or risk? One sentence. Be direct.
+Clean fit, workable with caveats, or risk? One sentence. Direct. No hedging.
 
-Quote the transcript. No filler. Markdown.`;
+Quote transcripts exactly. Label all web research. No filler. Markdown.`;
 
 const INFORMED_BRIEF_PROMPT=`You are Doss, generating an informed pre-call brief for Will Kraft, AE at Aleph.
 ${ALEPH_CONTEXT}
@@ -1080,10 +1126,7 @@ function getBriefPrompt(meetingId){
     ?`You are Doss, a sales intelligence tool for an AE at Aleph.\n${ALEPH_CONTEXT}\n\nBuild a pre-call brief following these instructions. Research deeply. Be specific. No filler. Markdown.\n\n{{PRIOR_CALL_CONTEXT}}\n\nINSTRUCTIONS:\n${custom}`
     :(hasPrior?INFORMED_BRIEF_PROMPT:DEFAULT_BRIEF_PROMPT);
   if(hasPrior){
-    const ctx=transcripts.map((t,i)=>{
-      const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-      return`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${t.title}${date?' — '+date:''} ===\n${t.transcript}`;
-    }).join('\n\n---\n\n').slice(0,40000);
+    const ctx=buildTranscriptContext(transcripts,40000);
     base=base.replace('{{PRIOR_CALL_CONTEXT}}',`PRIOR CALL TRANSCRIPTS — PRIMARY INTELLIGENCE SOURCE. Weight everything here above public research.\n\n${ctx}\n\nUse web research only to fill gaps the transcripts don't cover.`);
   }else{
     base=base.replace('{{PRIOR_CALL_CONTEXT}}','');
@@ -1163,19 +1206,17 @@ async function generateSEBrief(m){
   positionPillSlider('brief');
   STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
   const transcripts=STATE.transcripts[m.id]||[];
-  const transcriptContext=transcripts.map((t,i)=>{
-    const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    return`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${t.title}${date?' — '+date:''} ===\n${t.transcript}`;
-  }).join('\n\n---\n\n').slice(0,60000);
+  const transcriptContext=buildTranscriptContext(transcripts,60000);
   const org=STATE.orgDomain||'';
   const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
   const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''}`).join('\n')||'- No external attendee details';
-  const systemPrompt=`${SE_BRIEF_PROMPT}\n\nPRIOR CALL TRANSCRIPTS — PRIMARY INTELLIGENCE SOURCE:\n\n${transcriptContext||'No prior transcripts loaded.'}`;
+  const systemPrompt=`${SE_BRIEF_PROMPT}\n\nPRIOR CALL TRANSCRIPTS — PRIMARY INTELLIGENCE SOURCE. Weight everything here above web research. Label all web research as [Research].\n\n${transcriptContext||'No prior transcripts loaded — rely on web research and label everything [Research].'}`;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:STATE.model,max_tokens:3000,stream:true,system:systemPrompt,
-        messages:[{role:'user',content:`Generate a pre-demo SE brief.\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n\nExternal attendees:\n${attInfo}`}]})});
+        messages:[{role:'user',content:`Generate a pre-demo SE brief.\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n\nExternal attendees:\n${attInfo}`}],
+        tools:[{type:'web_search_20250305',name:'web_search'}]})});
     const ct=res.headers.get('content-type')||'';
     if(!res.ok||!ct.includes('text/event-stream')){
       const data=await res.json();if(data.error)throw new Error(data.error.message);
@@ -1183,7 +1224,7 @@ async function generateSEBrief(m){
       STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned.</p>';
     }else{
       const reader=res.body.getReader(),decoder=new TextDecoder();
-      let rawText='',buffer='';
+      let rawText='',buffer='',blockType=null,blockName=null,toolBuf='';
       while(true){
         const{done,value}=await reader.read();if(done)break;
         buffer+=decoder.decode(value,{stream:true});
@@ -1193,11 +1234,20 @@ async function generateSEBrief(m){
           const js=line.slice(6).trim();if(js==='[DONE]')continue;
           try{
             const ev=JSON.parse(js);
+            if(ev.type==='content_block_start'){blockType=ev.content_block?.type;blockName=ev.content_block?.name||null;toolBuf='';}
+            if(ev.type==='content_block_stop'){blockType=null;blockName=null;}
+            if(ev.type==='content_block_delta'&&blockType==='tool_use'&&blockName==='web_search'){
+              toolBuf+=(ev.delta?.partial_json||'');
+              const q=toolBuf.match(/"query"\s*:\s*"([^"\\]*)/);
+              if(q){const el=document.getElementById('searchStatusText');if(el)el.textContent=`Searching: ${q[1]}…`;}
+            }
             if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
               rawText+=ev.delta.text;STATE.briefs[m.id]=markdownToHtml(rawText);
               const t=document.getElementById('streamTarget');if(t){t.innerHTML=STATE.briefs[m.id];buildToc();}
+              if(rawText.length>80){const ss=document.getElementById('searchStatus');if(ss)ss.classList.add('faded');}
             }
-          }catch(pe){continue;}
+            if(ev.type==='error')throw new Error(ev.error?.message||'Stream error');
+          }catch(pe){if(pe.message!=='Stream error')continue;throw pe;}
         }
       }
       if(rawText)STATE.briefs[m.id]=markdownToHtml(rawText);
