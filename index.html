@@ -612,8 +612,9 @@ function updateActionBtns(meeting){
     return;
   }
 
-  // SE Brief is always surfaced when context exists — regardless of active tab
-  const seBriefBtn=hasContext?`<button class="gen-btn secondary" id="btnSEBrief" title="SE brief — demo sequence, stack, branch points, sourced strictly from transcripts + web">SE Brief</button>`:'';
+  // SE Brief surfaces when context exists OR is being cleaned (it's coming)
+  const isCleaningNow=!!STATE.cleaningContext[meeting.id];
+  const seBriefBtn=(hasContext||isCleaningNow)?`<button class="gen-btn secondary" id="btnSEBrief" ${isCleaningNow?'disabled title="Wait for cleaning to finish"':'title="SE brief — demo sequence, stack, branch points, sourced strictly from transcripts + web"'}>SE Brief</button>`:'';
 
   if(STATE.activeTab==='brief'){
     if(hasBrief){
@@ -830,24 +831,41 @@ RULES:
 4. Never alter conversational language, filler words, names of people, or company names that aren't on the reference list.
 5. Return ONLY the corrected transcript. No explanation, no commentary, no preamble. Exact same format as input.`;
 
-async function cleanTranscript(rawTranscript, apiKey){
-  if(!rawTranscript||!rawTranscript.trim())return rawTranscript;
+// Batched cleaner — ALL transcripts in ONE Haiku call.
+// Each transcript trimmed to 8k chars (product names surface early).
+// Total input stays well under rate limits. Fails gracefully to raw.
+async function cleanTranscriptsBatch(transcripts, apiKey){
+  if(!transcripts||!transcripts.length)return transcripts;
+  const PER_CALL_LIMIT=8000;
+  const labeled=transcripts.map((t,i)=>
+    `[CALL_${i+1}]\n${t.transcript.slice(0,PER_CALL_LIMIT)}${t.transcript.length>PER_CALL_LIMIT?'\n…[trimmed]':''}`
+  ).join('\n\n---\n\n');
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',
-        max_tokens:8000,
-        system:CLEANER_PROMPT,
-        messages:[{role:'user',content:`Correct any speech-to-text errors on proper nouns in this transcript. Return only the corrected transcript.\n\n${rawTranscript.slice(0,30000)}`}]
+        max_tokens:4000,
+        system:CLEANER_PROMPT+'\n\nYou will receive multiple transcripts labeled [CALL_1], [CALL_2], etc. Return each corrected transcript under the EXACT same label. Preserve all labels and --- separators. Return nothing else.',
+        messages:[{role:'user',content:`Correct speech-to-text proper noun errors. Keep all [CALL_N] labels and --- separators exactly as-is.\n\n${labeled}`}]
       })});
-    if(!res.ok)return rawTranscript; // fail gracefully — raw is better than nothing
+    if(!res.ok){console.warn('Doss: batch clean failed:',res.status);return transcripts;}
     const data=await res.json();
-    const cleaned=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
-    return cleaned||rawTranscript;
+    if(data.error){console.warn('Doss: batch clean error:',data.error.message);return transcripts;}
+    const raw=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+    if(!raw)return transcripts;
+    return transcripts.map((t,i)=>{
+      const label=`[CALL_${i+1}]`;
+      const nextLabel=`[CALL_${i+2}]`;
+      const start=raw.indexOf(label);
+      if(start===-1)return t;
+      const end=raw.indexOf(nextLabel)>start?raw.indexOf(nextLabel):raw.length;
+      const cleanedText=raw.slice(start+label.length,end).replace(/^[\s\n-]+/,'').replace(/[\s\n-]+$/,'').trim();
+      return cleanedText?{...t,transcript:cleanedText}:t;
+    });
   }catch(e){
-    console.warn('Doss: transcript clean failed, using raw:',e);
-    return rawTranscript;
+    console.warn('Doss: batch clean failed, using raw:',e);
+    return transcripts;
   }
 }
 
@@ -898,21 +916,14 @@ async function gatherFathomContext(m){
       };
     });
 
-    // Cleaning pass — fix speech-to-text errors on proper nouns before storage
+    // Cleaning pass — ONE batched Haiku call for all transcripts
     const apiKey=document.getElementById('apiKey').value.trim();
     let cleaned=rawTranscripts;
     if(apiKey&&rawTranscripts.length>0){
       delete STATE.gatheringContext[m.id];
-      STATE.cleaningContext[m.id]=`0 / ${rawTranscripts.length}`;
+      STATE.cleaningContext[m.id]=`${rawTranscripts.length} call${rawTranscripts.length!==1?'s':''}`;
       renderDealRoomPane(m);
-      cleaned=[];
-      for(let i=0;i<rawTranscripts.length;i++){
-        STATE.cleaningContext[m.id]=`${i+1} / ${rawTranscripts.length}`;
-        renderDealRoomPane(m);
-        const t=rawTranscripts[i];
-        const cleanedText=await cleanTranscript(t.transcript,apiKey);
-        cleaned.push({...t,transcript:cleanedText});
-      }
+      cleaned=await cleanTranscriptsBatch(rawTranscripts,apiKey);
     }
 
     STATE.transcripts[m.id]=cleaned;
