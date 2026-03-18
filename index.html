@@ -357,7 +357,7 @@ const STATE={
   activeMeetingId:null,activeTab:'brief',currentDate:new Date(),
   timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
   briefs:{},transcripts:{},tcChats:{},
-  generating:{},gatheringContext:{},
+  generating:{},gatheringContext:{},cleaningContext:{},
   meetingIndex:{},contextFetchTime:{},
   model:'claude-sonnet-4-20250514',
   briefTemplate:localStorage.getItem('doss_template')||'',
@@ -664,6 +664,7 @@ function renderDealRoomPane(m){
   const transcripts=STATE.transcripts[m.id];
   const hasTranscripts=Array.isArray(transcripts)&&transcripts.length>0;
   const isGathering=!!STATE.gatheringContext[m.id];
+  const isCleaning=!!STATE.cleaningContext[m.id];
   const isChatting=STATE.generating[m.id]==='chat';
 
   // Context bar
@@ -676,6 +677,10 @@ function renderDealRoomPane(m){
     ctxIconHtml=`<span class="spinner dark"></span>`;
     ctxTitle='Searching Fathom…';
     ctxSub='Looking for prior recordings in the last 6 months.';
+  }else if(isCleaning){
+    ctxIconHtml=`<span class="spinner dark"></span>`;
+    ctxTitle=`Cleaning transcripts… <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;margin-left:6px;">${STATE.cleaningContext[m.id]}</span>`;
+    ctxSub='Correcting product names, VC firms, and tech stack proper nouns.';
   }else if(hasTranscripts){
     ctxIconHtml=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>`;
     const count=transcripts.length;
@@ -786,6 +791,66 @@ function renderDealRoomPane(m){
   }
 }
 
+// ── TRANSCRIPT CLEANING LAYER ──
+// Runs on raw Fathom transcripts before storage. Uses Haiku — fast, cheap,
+// focused. Corrects speech-to-text errors on proper nouns only: SaaS products,
+// VC/PE firms, finance tools. Never touches conversational content.
+
+const PROPER_NOUN_REFERENCE=`
+ERPS & ACCOUNTING: NetSuite, Sage Intacct, QuickBooks, Xero, SAP, Oracle, Microsoft Dynamics, Workday Financials, Acumatica, Epicor, Infor, Deltek, Intact, Netsuite
+
+HRIS & PAYROLL: Workday, BambooHR, Rippling, Gusto, ADP, Paylocity, Paycom, UKG, Ceridian, HiBob, Lattice, Namely, Justworks, TriNet, Paychex, Deel, Remote, Papaya Global
+
+CRM & SALES: Salesforce, HubSpot, Pipedrive, Outreach, Salesloft, ZoomInfo, Apollo, Gong, Chorus, Clari, Gainsight
+
+DATA & ANALYTICS: Snowflake, BigQuery, Databricks, Redshift, dbt, Fivetran, Airbyte, Looker, Tableau, Power BI, Mode, Sigma, Metabase, Hex, ThoughtSpot, Stitch, Matillion
+
+FP&A & PLANNING (competitors): Anaplan, Planful, Adaptive Insights, Workday Adaptive, Vena, Cube, Datarails, Mosaic, Pigment, Basis, OnPlan, Causal, Abacum, Finmark, Brixx, Vareto, Runway, Forecast, Fluence
+
+FINANCE OPS: Carta, Ramp, Brex, Expensify, Bill.com, Stripe, Chargebee, Maxio, Recurly, Avalara, Zip, Coupa, Tipalti, Airbase, Navan, Concur, Divvy
+
+COLLABORATION & INFRA: Slack, Notion, Asana, Jira, Confluence, GitHub, Linear, Figma, Zoom, Google Workspace, Microsoft 365, ServiceNow, Zendesk, Intercom
+
+VC FIRMS: Sequoia, Andreessen Horowitz, a16z, Kleiner Perkins, Benchmark, Accel, General Catalyst, Bessemer, Lightspeed, Tiger Global, SoftBank, Index Ventures, Greylock, Battery Ventures, Insight Partners, GV, Google Ventures, First Round, Founders Fund, Craft Ventures, Redpoint, Felicis, Emergence, OpenView, Sapphire, Scale Venture Partners, Coatue, Dragoneer
+
+PE FIRMS: Thoma Bravo, Vista Equity, Francisco Partners, KKR, Warburg Pincus, Silver Lake, Blackstone, Apollo Global, Bain Capital, TPG, Welsh Carson, TA Associates, Summit Partners, Investcorp, Hg Capital, Symphony Technology Group
+`.trim();
+
+const CLEANER_PROMPT=`You are a transcript corrector with one job: fix speech-to-text errors on proper nouns in sales call transcripts.
+
+The transcription model is accurate for conversation but consistently mishears SaaS product names, VC firm names, PE firm names, and finance tool names — because these are out-of-distribution words for speech recognition.
+
+REFERENCE LIST OF CORRECT PROPER NOUNS:
+${PROPER_NOUN_REFERENCE}
+
+RULES:
+1. Only correct proper nouns that appear on or are phonetically similar to items on the reference list.
+2. Use context clues. "Yusto for payroll" → Gusto. "Bamboo age" → BambooHR. "Venna" for FP&A → Vena. "Anaplan" mispronounced → still Anaplan.
+3. When uncertain, leave it unchanged. Do not guess. A wrong correction is worse than no correction.
+4. Never alter conversational language, filler words, names of people, or company names that aren't on the reference list.
+5. Return ONLY the corrected transcript. No explanation, no commentary, no preamble. Exact same format as input.`;
+
+async function cleanTranscript(rawTranscript, apiKey){
+  if(!rawTranscript||!rawTranscript.trim())return rawTranscript;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:8000,
+        system:CLEANER_PROMPT,
+        messages:[{role:'user',content:`Correct any speech-to-text errors on proper nouns in this transcript. Return only the corrected transcript.\n\n${rawTranscript.slice(0,30000)}`}]
+      })});
+    if(!res.ok)return rawTranscript; // fail gracefully — raw is better than nothing
+    const data=await res.json();
+    const cleaned=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+    return cleaned||rawTranscript;
+  }catch(e){
+    console.warn('Doss: transcript clean failed, using raw:',e);
+    return rawTranscript;
+  }
+}
+
 // ── GATHER FATHOM CONTEXT ──
 async function gatherFathomContext(m){
   if(!m)return;
@@ -816,7 +881,7 @@ async function gatherFathomContext(m){
     const meetings=data.items||[];
     console.log(`Doss: ${meetings.length} meetings for ${externalDomains.join(', ')}`);
     meetings.sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
-    STATE.transcripts[m.id]=meetings.map(fm=>{
+    const rawTranscripts=meetings.map(fm=>{
       const lines=Array.isArray(fm.transcript)?fm.transcript:[];
       const grouped=[];
       lines.forEach(line=>{
@@ -832,6 +897,25 @@ async function gatherFathomContext(m){
         id:fm.recording_id||fm.id,
       };
     });
+
+    // Cleaning pass — fix speech-to-text errors on proper nouns before storage
+    const apiKey=document.getElementById('apiKey').value.trim();
+    let cleaned=rawTranscripts;
+    if(apiKey&&rawTranscripts.length>0){
+      delete STATE.gatheringContext[m.id];
+      STATE.cleaningContext[m.id]=`0 / ${rawTranscripts.length}`;
+      renderDealRoomPane(m);
+      cleaned=[];
+      for(let i=0;i<rawTranscripts.length;i++){
+        STATE.cleaningContext[m.id]=`${i+1} / ${rawTranscripts.length}`;
+        renderDealRoomPane(m);
+        const t=rawTranscripts[i];
+        const cleanedText=await cleanTranscript(t.transcript,apiKey);
+        cleaned.push({...t,transcript:cleanedText});
+      }
+    }
+
+    STATE.transcripts[m.id]=cleaned;
     const pillBtn=document.querySelector('.pill-opt[data-tab="dealroom"]');
     if(pillBtn&&STATE.transcripts[m.id].length>0&&!pillBtn.querySelector('.pill-dot'))pillBtn.insertAdjacentHTML('beforeend','<span class="pill-dot"></span>');
     STATE.contextFetchTime[m.id]=Date.now();
@@ -842,6 +926,7 @@ async function gatherFathomContext(m){
     STATE.transcripts[m.id]=[];
   }
   delete STATE.gatheringContext[m.id];
+  delete STATE.cleaningContext[m.id];
   renderDealRoomPane(m);
   updateActionBtns(m);
 }
