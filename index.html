@@ -357,7 +357,7 @@ const STATE={
   activeMeetingId:null,activeTab:'brief',currentDate:new Date(),
   timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,
   briefs:{},transcripts:{},tcChats:{},
-  generating:{},gatheringContext:{},cleaningContext:{},
+  generating:{},gatheringContext:{},
   meetingIndex:{},contextFetchTime:{},
   model:'claude-sonnet-4-20250514',
   briefTemplate:localStorage.getItem('doss_template')||'',
@@ -612,9 +612,7 @@ function updateActionBtns(meeting){
     return;
   }
 
-  // SE Brief surfaces when context exists OR is being cleaned (it's coming)
-  const isCleaningNow=!!STATE.cleaningContext[meeting.id];
-  const seBriefBtn=(hasContext||isCleaningNow)?`<button class="gen-btn secondary" id="btnSEBrief" ${isCleaningNow?'disabled title="Wait for cleaning to finish"':'title="SE brief — demo sequence, stack, branch points, sourced strictly from transcripts + web"'}>SE Brief</button>`:'';
+  const seBriefBtn=hasContext?`<button class="gen-btn secondary" id="btnSEBrief" title="SE brief — demo sequence, stack, branch points">SE Brief</button>`:'';
 
   if(STATE.activeTab==='brief'){
     if(hasBrief){
@@ -665,7 +663,6 @@ function renderDealRoomPane(m){
   const transcripts=STATE.transcripts[m.id];
   const hasTranscripts=Array.isArray(transcripts)&&transcripts.length>0;
   const isGathering=!!STATE.gatheringContext[m.id];
-  const isCleaning=!!STATE.cleaningContext[m.id];
   const isChatting=STATE.generating[m.id]==='chat';
 
   // Context bar
@@ -678,10 +675,7 @@ function renderDealRoomPane(m){
     ctxIconHtml=`<span class="spinner dark"></span>`;
     ctxTitle='Searching Fathom…';
     ctxSub='Looking for prior recordings in the last 6 months.';
-  }else if(isCleaning){
-    ctxIconHtml=`<span class="spinner dark"></span>`;
-    ctxTitle=`Cleaning transcripts… <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;margin-left:6px;">${STATE.cleaningContext[m.id]}</span>`;
-    ctxSub='Correcting product names, VC firms, and tech stack proper nouns.';
+
   }else if(hasTranscripts){
     ctxIconHtml=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>`;
     const count=transcripts.length;
@@ -792,83 +786,6 @@ function renderDealRoomPane(m){
   }
 }
 
-// ── TRANSCRIPT CLEANING LAYER ──
-// Runs on raw Fathom transcripts before storage. Uses Haiku — fast, cheap,
-// focused. Corrects speech-to-text errors on proper nouns only: SaaS products,
-// VC/PE firms, finance tools. Never touches conversational content.
-
-const PROPER_NOUN_REFERENCE=`
-ERPS & ACCOUNTING: NetSuite, Sage Intacct, QuickBooks, Xero, SAP, Oracle, Microsoft Dynamics, Workday Financials, Acumatica, Epicor, Infor, Deltek, Intact, Netsuite
-
-HRIS & PAYROLL: Workday, BambooHR, Rippling, Gusto, ADP, Paylocity, Paycom, UKG, Ceridian, HiBob, Lattice, Namely, Justworks, TriNet, Paychex, Deel, Remote, Papaya Global
-
-CRM & SALES: Salesforce, HubSpot, Pipedrive, Outreach, Salesloft, ZoomInfo, Apollo, Gong, Chorus, Clari, Gainsight
-
-DATA & ANALYTICS: Snowflake, BigQuery, Databricks, Redshift, dbt, Fivetran, Airbyte, Looker, Tableau, Power BI, Mode, Sigma, Metabase, Hex, ThoughtSpot, Stitch, Matillion
-
-FP&A & PLANNING (competitors): Anaplan, Planful, Adaptive Insights, Workday Adaptive, Vena, Cube, Datarails, Mosaic, Pigment, Basis, OnPlan, Causal, Abacum, Finmark, Brixx, Vareto, Runway, Forecast, Fluence
-
-FINANCE OPS: Carta, Ramp, Brex, Expensify, Bill.com, Stripe, Chargebee, Maxio, Recurly, Avalara, Zip, Coupa, Tipalti, Airbase, Navan, Concur, Divvy
-
-COLLABORATION & INFRA: Slack, Notion, Asana, Jira, Confluence, GitHub, Linear, Figma, Zoom, Google Workspace, Microsoft 365, ServiceNow, Zendesk, Intercom
-
-VC FIRMS: Sequoia, Andreessen Horowitz, a16z, Kleiner Perkins, Benchmark, Accel, General Catalyst, Bessemer, Lightspeed, Tiger Global, SoftBank, Index Ventures, Greylock, Battery Ventures, Insight Partners, GV, Google Ventures, First Round, Founders Fund, Craft Ventures, Redpoint, Felicis, Emergence, OpenView, Sapphire, Scale Venture Partners, Coatue, Dragoneer
-
-PE FIRMS: Thoma Bravo, Vista Equity, Francisco Partners, KKR, Warburg Pincus, Silver Lake, Blackstone, Apollo Global, Bain Capital, TPG, Welsh Carson, TA Associates, Summit Partners, Investcorp, Hg Capital, Symphony Technology Group
-`.trim();
-
-const CLEANER_PROMPT=`You are a transcript corrector with one job: fix speech-to-text errors on proper nouns in sales call transcripts.
-
-The transcription model is accurate for conversation but consistently mishears SaaS product names, VC firm names, PE firm names, and finance tool names — because these are out-of-distribution words for speech recognition.
-
-REFERENCE LIST OF CORRECT PROPER NOUNS:
-${PROPER_NOUN_REFERENCE}
-
-RULES:
-1. Only correct proper nouns that appear on or are phonetically similar to items on the reference list.
-2. Use context clues. "Yusto for payroll" → Gusto. "Bamboo age" → BambooHR. "Venna" for FP&A → Vena. "Anaplan" mispronounced → still Anaplan.
-3. When uncertain, leave it unchanged. Do not guess. A wrong correction is worse than no correction.
-4. Never alter conversational language, filler words, names of people, or company names that aren't on the reference list.
-5. Return ONLY the corrected transcript. No explanation, no commentary, no preamble. Exact same format as input.`;
-
-// Batched cleaner — ALL transcripts in ONE Haiku call.
-// Each transcript trimmed to 8k chars (product names surface early).
-// Total input stays well under rate limits. Fails gracefully to raw.
-async function cleanTranscriptsBatch(transcripts, apiKey){
-  if(!transcripts||!transcripts.length)return transcripts;
-  const PER_CALL_LIMIT=8000;
-  const labeled=transcripts.map((t,i)=>
-    `[CALL_${i+1}]\n${t.transcript.slice(0,PER_CALL_LIMIT)}${t.transcript.length>PER_CALL_LIMIT?'\n…[trimmed]':''}`
-  ).join('\n\n---\n\n');
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',
-        max_tokens:4000,
-        system:CLEANER_PROMPT+'\n\nYou will receive multiple transcripts labeled [CALL_1], [CALL_2], etc. Return each corrected transcript under the EXACT same label. Preserve all labels and --- separators. Return nothing else.',
-        messages:[{role:'user',content:`Correct speech-to-text proper noun errors. Keep all [CALL_N] labels and --- separators exactly as-is.\n\n${labeled}`}]
-      })});
-    if(!res.ok){console.warn('Doss: batch clean failed:',res.status);return transcripts;}
-    const data=await res.json();
-    if(data.error){console.warn('Doss: batch clean error:',data.error.message);return transcripts;}
-    const raw=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
-    if(!raw)return transcripts;
-    return transcripts.map((t,i)=>{
-      const label=`[CALL_${i+1}]`;
-      const nextLabel=`[CALL_${i+2}]`;
-      const start=raw.indexOf(label);
-      if(start===-1)return t;
-      const end=raw.indexOf(nextLabel)>start?raw.indexOf(nextLabel):raw.length;
-      const cleanedText=raw.slice(start+label.length,end).replace(/^[\s\n-]+/,'').replace(/[\s\n-]+$/,'').trim();
-      return cleanedText?{...t,transcript:cleanedText}:t;
-    });
-  }catch(e){
-    console.warn('Doss: batch clean failed, using raw:',e);
-    return transcripts;
-  }
-}
-
 // ── GATHER FATHOM CONTEXT ──
 async function gatherFathomContext(m){
   if(!m)return;
@@ -916,17 +833,7 @@ async function gatherFathomContext(m){
       };
     });
 
-    // Cleaning pass — ONE batched Haiku call for all transcripts
-    const apiKey=document.getElementById('apiKey').value.trim();
-    let cleaned=rawTranscripts;
-    if(apiKey&&rawTranscripts.length>0){
-      delete STATE.gatheringContext[m.id];
-      STATE.cleaningContext[m.id]=`${rawTranscripts.length} call${rawTranscripts.length!==1?'s':''}`;
-      renderDealRoomPane(m);
-      cleaned=await cleanTranscriptsBatch(rawTranscripts,apiKey);
-    }
-
-    STATE.transcripts[m.id]=cleaned;
+    STATE.transcripts[m.id]=rawTranscripts;
     const pillBtn=document.querySelector('.pill-opt[data-tab="dealroom"]');
     if(pillBtn&&STATE.transcripts[m.id].length>0&&!pillBtn.querySelector('.pill-dot'))pillBtn.insertAdjacentHTML('beforeend','<span class="pill-dot"></span>');
     STATE.contextFetchTime[m.id]=Date.now();
@@ -937,7 +844,6 @@ async function gatherFathomContext(m){
     STATE.transcripts[m.id]=[];
   }
   delete STATE.gatheringContext[m.id];
-  delete STATE.cleaningContext[m.id];
   renderDealRoomPane(m);
   updateActionBtns(m);
 }
@@ -1093,14 +999,25 @@ ${ALEPH_CONTEXT}
 
 WILL KRAFT is the AE. He appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people (Kristen, Jeremy, Alex, Ritvik, Tom) are colleagues — not the prospect.
 
-SOURCE DISCIPLINE — NON-NEGOTIABLE:
-Every fact in this brief must carry its source. No exceptions.
-- [TRANSCRIPT — "exact quote"] for anything a prospect said directly. Always use their exact words.
-- [Research] for anything sourced from web search or public information.
-Never blend the two. Never use web research to "confirm" or "elaborate on" what was said in a call — that's how hallucinations get treated as ground truth. The SE will treat [TRANSCRIPT] as fact and [Research] as hypothesis. Do not blur this line.
-If something is unknown from transcripts AND unfindable via web search, write: Unknown — ask on call.
+TRANSCRIPT READING — PROPER NOUN CORRECTION:
+Speech-to-text mishears SaaS product names constantly. As you read, silently correct obvious phonetic errors before writing anything. Reference:
+ERPs: NetSuite, Sage Intacct, QuickBooks, Xero, SAP, Oracle, Workday, Acumatica
+HRIS/Payroll: BambooHR, Rippling, Gusto, ADP, Paylocity, Paycom, UKG, Ceridian, HiBob, Justworks, Deel
+CRM/Sales: Salesforce, HubSpot, Pipedrive, Outreach, Salesloft, Gong, Clari, Gainsight
+Data/Analytics: Snowflake, BigQuery, Databricks, Redshift, dbt, Fivetran, Looker, Tableau, Power BI, Sigma, Hex
+FP&A competitors: Anaplan, Planful, Vena, Cube, Datarails, Mosaic, Pigment, Basis, Runway, Causal, Abacum, Vareto
+Finance ops: Carta, Ramp, Brex, Bill.com, Stripe, Coupa, Tipalti, Airbase, Zip, Expensify, Navan
+VC: Sequoia, Andreessen Horowitz, a16z, Kleiner Perkins, Benchmark, Accel, General Catalyst, Bessemer, Lightspeed, Tiger Global, Greylock, First Round, Founders Fund, Craft Ventures, Redpoint, Felicis, Emergence, OpenView
+PE: Thoma Bravo, Vista Equity, Francisco Partners, KKR, Warburg Pincus, Silver Lake, Blackstone, Apollo, Bain Capital, TPG, Summit Partners, TA Associates
+When quoting, use the corrected name. Never mention the correction.
 
-STANDARD ALEPH DEMO SPINE (reference only — your recommended sequence overrides this):
+HOW TO SOURCE:
+- Lead every section with what was actually said on calls. Quote their exact words when it adds signal.
+- Use web search only to fill gaps the transcripts don't cover — stack details not mentioned, company background, funding. Keep web research brief and clearly separate from what was said.
+- Never blend inferred research with transcript evidence. If you found something via web that wasn't on a call, put it in a short "Additional context" note at the end of the relevant section, not inline with transcript quotes.
+- If something is unknown from both transcripts and web, say: Unknown — ask on call.
+
+STANDARD ALEPH DEMO SPINE (reference only — your sequence overrides this):
 Integrations → Tables & data layer → Mappings → Spreadsheet add-in (Explorer, Connect, AI Scan) → Dashboards → Headcount planning → Automations & scenarios
 
 NATURAL BRANCH POINTS:
@@ -1108,37 +1025,35 @@ NATURAL BRANCH POINTS:
 - Snowflake/data warehouse → SQL exposure, cross-source joins on platform
 - Department visibility asked early → show permissions early, don't save it
 - Forecasting/scenario pain → scenario management, actuals roll-forward
-- Already live on a competitor → DO NOT lead with features. Establish what their current tool can't do first.
+- Already live on a competitor → establish what their current tool can't do BEFORE screen share. Never discover this mid-demo.
 - Headcount is the hook → spend real time on the full template flow, not a flyby
-- Carta/gap question → acknowledge cleanly, name both workarounds (Snowflake table or CSV schedule), move on. Never promise roadmap as a close.
+- Carta/gap question → acknowledge cleanly, name both workarounds (Snowflake table or CSV schedule). Never promise roadmap as a close.
 
-Produce the following. Lead every section with transcript evidence. Use web search only to fill gaps transcripts don't cover, and label everything.
+Produce the following sections. Be direct. No filler. Markdown.
 
 ## Who's In the Room
-For each prospect contact: name, title [TRANSCRIPT or Research], what they said mattered to them (quote exactly), technical comfort level — SQL-aware, spreadsheet-native, executive? Grounded in what they actually said.
+For each prospect: name, title, what they actually said mattered to them (quote their words), technical comfort level — SQL-aware, spreadsheet-native, executive? Ground every claim in the transcript.
 
 ## Their Stack
-Every system mentioned on calls [TRANSCRIPT — "quote"]. For each: integration status (native / CSV / workaround needed), complexity flags, anything that's a painful manual process today. Use [Research] to fill likely stack from job postings, LinkedIn, public info — only where transcripts are silent, and label it.
+Every system mentioned on calls — quote what they said about each. Integration status: native / CSV / workaround needed. Anything painful or manual today. If web research surfaces likely tools not mentioned on calls, note them briefly at the end as "Worth confirming."
 
 ## Recommended Demo Sequence
-Not the standard tour. A specific opinionated sequence based on their stated pain. Name what to lead with and why — tied to a transcript moment. Name what to skip or keep short.
+Not the standard tour. A specific opinionated sequence tied to their stated pain. Name what to lead with and exactly why. Name what to skip or keep short.
 
 ## Expected Branch Points
-Where will they pull you off-script? For each: what they'll likely ask (grounded in what they actually said), what to show, what to say.
+Where will they pull you off-script? For each: what they'll likely ask (grounded in what they said), what to show, what to say.
 
 ## What NOT to Demo or Promise
 Anything on roadmap but not live, product gaps, out-of-scope requests. For each: state it, give the redirect. Clean acknowledge + workaround + move on.
 
 ## They Will Ask...
-3–5 specific technical questions based on their stack and stated pain. For each: the right answer. Tag whether the question is predicted from [TRANSCRIPT] or [Research].
+3–5 specific technical questions based on their stack and pain. For each: the right answer.
 
 ## Displacement Angle
-If they're on a competitor (Planful, Cube, Datarails, Vena, etc.), name it [TRANSCRIPT or Research]. What specifically can't that tool do that Aleph does? This needs to be established in the opening orientation before screen share — not discovered mid-demo.
+If they're on a competitor, name it. What can't that tool do that Aleph does? Establish this in the opening orientation before screen share.
 
 ## One-Line Technical Fit Assessment
-Clean fit, workable with caveats, or risk? One sentence. Direct. No hedging.
-
-Quote transcripts exactly. Label all web research. No filler. Markdown.`;
+Clean fit, workable with caveats, or risk? One sentence. No hedging.\`
 
 const INFORMED_BRIEF_PROMPT=`You are Doss, generating an informed pre-call brief for Will Kraft, AE at Aleph.
 ${ALEPH_CONTEXT}
