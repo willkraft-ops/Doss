@@ -242,14 +242,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .msg-copy-btn{display:inline-flex;align-items:center;gap:4px;margin-top:7px;margin-left:27px;padding:3px 9px;border-radius:4px;border:1px solid var(--paper-border);background:transparent;font-family:var(--sans);font-size:10.5px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
 .msg-copy-btn:hover{background:var(--cream-150);color:var(--text);}
 
-/* Email card */
-.email-card{margin-top:8px;margin-left:27px;background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid rgba(200,121,65,0.3);border-radius:2px;box-shadow:var(--paper-shadow);overflow:hidden;}
-.email-card-header{padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--paper-border);background:rgba(200,121,65,0.05);}
-.email-card-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);}
-.email-card-copy{padding:3px 9px;border-radius:4px;border:1px solid var(--paper-border);background:transparent;font-family:var(--sans);font-size:10.5px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
-.email-card-copy:hover{background:var(--cream-150);color:var(--text);}
-.email-card-body{padding:16px 18px;font-size:13.5px;line-height:1.75;color:var(--text);white-space:pre-wrap;}
-
 /* Thinking indicator */
 .msg-thinking{padding-left:27px;font-size:12.5px;color:var(--text-muted);font-style:italic;}
 
@@ -359,29 +351,60 @@ const STATE={
   briefs:{},transcripts:{},tcChats:{},
   generating:{},gatheringContext:{},
   meetingIndex:{},contextFetchTime:{},
-  model:'claude-sonnet-4-20250514',
+  model:'claude-sonnet-4-6',
   briefTemplate:localStorage.getItem('doss_template')||'',
+  tocObserver:null, // stored so we can disconnect before recreating
 };
 
 function saveState(){
   try{
+    // Persist transcripts with a per-transcript text cap so we don't blow localStorage.
+    // 8K chars per call keeps the raw dialogue useful for buildTranscriptContext
+    // at any budget size while bounding total storage to ~80K per meeting.
+    const transcriptsToSave={};
+    Object.keys(STATE.transcripts).forEach(id=>{
+      const list=STATE.transcripts[id];
+      if(!Array.isArray(list))return;
+      transcriptsToSave[id]=list.map(t=>({...t,transcript:t.transcript?t.transcript.slice(0,8000):''}));
+    });
     localStorage.setItem('doss_briefs',JSON.stringify(STATE.briefs));
     localStorage.setItem('doss_tcchats',JSON.stringify(STATE.tcChats));
     localStorage.setItem('doss_mindex',JSON.stringify(STATE.meetingIndex));
     localStorage.setItem('doss_fetchtime',JSON.stringify(STATE.contextFetchTime));
-  }catch(e){console.warn('State save failed:',e);}
+    localStorage.setItem('doss_transcripts',JSON.stringify(transcriptsToSave));
+    // Rough size check — warn if approaching browser limit (~5MB)
+    let total=0;['doss_briefs','doss_tcchats','doss_mindex','doss_fetchtime','doss_transcripts','doss_template']
+      .forEach(k=>{total+=(localStorage.getItem(k)||'').length;});
+    if(total>4_000_000)console.warn(`Doss: localStorage ~${Math.round(total/1024)}KB — consider clearing old data.`);
+  }catch(e){console.warn('Doss: state save failed (storage may be full):',e);}
 }
 function loadState(){
   try{
     const b=localStorage.getItem('doss_briefs'),c=localStorage.getItem('doss_tcchats');
     const mi=localStorage.getItem('doss_mindex'),ft=localStorage.getItem('doss_fetchtime');
+    const tr=localStorage.getItem('doss_transcripts');
     if(b)STATE.briefs=JSON.parse(b);
     if(c)STATE.tcChats=JSON.parse(c);
     if(mi)STATE.meetingIndex=JSON.parse(mi);
     if(ft)STATE.contextFetchTime=JSON.parse(ft);
+    if(tr)STATE.transcripts=JSON.parse(tr);
   }catch(e){}
 }
+// Evict orphaned data for meeting IDs no longer in the index.
+// Runs once on startup after loadState — keeps storage from growing unbounded.
+function cleanupState(){
+  const validIds=new Set(Object.keys(STATE.meetingIndex));
+  if(!validIds.size)return; // nothing indexed yet, skip
+  let changed=false;
+  [STATE.briefs,STATE.tcChats,STATE.transcripts,STATE.contextFetchTime].forEach(store=>{
+    Object.keys(store).forEach(id=>{
+      if(!validIds.has(id)){delete store[id];changed=true;}
+    });
+  });
+  if(changed)saveState();
+}
 loadState();
+cleanupState(); // evict orphaned briefs/chats/transcripts on startup
 
 // ── GOOGLE AUTH ──
 let tokenClient;
@@ -719,27 +742,14 @@ function renderDealRoomPane(m){
           <div class="msg-user"><div class="msg-user-text">${esc(msg.content)}</div></div>
         </div>`;
       }else{
-        const emailMatch=msg.content.match(/<email>([\s\S]*?)<\/email>/i);
-        let bodyHtml='',extras='';
-        if(emailMatch){
-          const emailText=emailMatch[1].trim();
-          const rest=msg.content.replace(/<email>[\s\S]*?<\/email>/i,'').trim();
-          if(rest)bodyHtml=`<div class="msg-assistant-body">${markdownToHtml(rest)}</div>`;
-          extras=`<div class="email-card">
-            <div class="email-card-header"><span class="email-card-lbl">Follow-up Email</span><button class="email-card-copy copy-trigger" data-text="${safeAttr(emailText)}">Copy</button></div>
-            <div class="email-card-body">${esc(emailText)}</div>
-          </div>`;
-        }else{
-          bodyHtml=`<div class="msg-assistant-body">${markdownToHtml(msg.content)}</div>`;
-          extras=`<button class="msg-copy-btn copy-trigger" data-text="${safeAttr(msg.content)}">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            Copy
-          </button>`;
-        }
         msgsHtml+=`<div class="msg-group">
           <div class="msg-assistant">
             <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div>
-            ${bodyHtml}${extras}
+            <div class="msg-assistant-body">${markdownToHtml(msg.content)}</div>
+            <button class="msg-copy-btn copy-trigger" data-text="${msg.content.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;')}">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Copy
+            </button>
           </div>
         </div>`;
       }
@@ -902,14 +912,22 @@ You know your place in Will's world. He is running this deal. You are supporting
 HOW TO RESPOND TO INTELLIGENCE QUESTIONS:
 Surface what is tactically load-bearing right now — not everything you know, the things that actually matter to a human being in this specific deal at this specific moment. Ground everything in what was actually said. Preserve the texture of how it was said. A moment of conviction from the prospect is different from something they mentioned in passing — treat them differently. Never recap things Will already lived through. He was there.
 
-HOW TO WRITE FOLLOW-UP EMAILS:
-Will's approach: find what the person is actually afraid of underneath what they said — not the stated concern, the real one. Make the next step feel inevitable and easy from their perspective. Be direct. Directness is a gift — it removes the ambiguity that lets people stall. Leave no room for questions because questions create distance. The email should feel like clarity, not pressure.
+PATTERN RECOGNITION — READ TRANSCRIPTS THROUGH THESE LENSES:
+You have deep knowledge of how mid-market CFOs and finance leaders actually buy SaaS. Use it actively as you read. You are not just recalling what was said — you are interpreting it against known behavioral patterns in this buyer type.
 
-Never open with what just happened — they lived it too. Anchor on one real moment or signal from the conversation that reveals something true about where they are. Let that do the work. Then make the next step obvious.
+CFO buying signals that are real vs. performative. A CFO who says "this is interesting, send me more" after a first call is not engaged — they're managing you out politely. A CFO who asks a specific operational question ("how does this handle our multi-entity consolidation?"), volunteers a pain unprompted, or pulls in a direct report mid-call is actually considering it. The difference is whether they're giving you information or receiving it. Real buyers give information.
 
-Never use: "It was great connecting", "I wanted to follow up", "Just checking in", "Let me know if you have questions", "circle back", "touch base", "reach out", "seamless", "excited to", em dashes, bullet points, formal sign-offs. Don't mention Aleph by name in the first sentence. Don't write something that sounds like it came from a template.
+Champion behavior. A true champion does three things: they share internal context that wasn't asked for, they proactively solve objections before Will raises them, and they have a personal stake in the outcome beyond their job function. Watch for the moment a champion goes quiet — usually after a pricing conversation or a stakeholder gets looped in above them. That silence means something changed internally and they either can't say it or don't know how yet.
 
-Wrap the email body ONLY in <email></email> tags. No subject line. No greeting label. First word of the email, nothing before it.`,
+The stall pattern. In mid-market SaaS, most deals don't die — they stall. The signature is a shift from forward-leaning language ("when we get this set up") to conditional language ("if we decided to move forward") with no explicit change in stated interest. Other stall signals: meetings that keep getting rescheduled by them, not by Will; a champion who starts CCing additional people as cover; suddenly needing a "security review" or "procurement process" that wasn't mentioned before. Stalls are recoverable but only if named.
+
+Budget and procurement tells. CFOs rarely say they don't have budget — they say "the timing isn't right" or "we want to revisit next quarter." When budget is the real issue, they get vague about timeline and specific about process. When it's not budget, they get specific about timeline and vague about process. Listen for which one is happening.
+
+The incumbent problem. When someone is on a tool they're unhappy with — Cube, Datarails, Excel alone — they almost never open with the pain. They open with what the tool does well to justify the time spent on it. The real pain usually surfaces in an offhand comment, a "yeah we've had to work around that" or "our workaround for that is." Those asides are the actual buying trigger. They didn't plan to say it. That's the moment worth surfacing back to Will.
+
+Implementation scar tissue. Finance teams that have been through a bad implementation — long one, didn't stick, consultants involved, promised ROI never materialized — carry that forward into every vendor conversation. They won't always name it directly but you'll hear it in how they ask about onboarding ("so how long does this actually take"), what they push on in reference calls, and how skeptical they are of the trial. Name it if you see it. It changes how Will needs to run the deal.
+
+Competitive dynamics. When a prospect is talking to multiple vendors, they rarely say so directly. Watch for: questions that are clearly designed to elicit a comparison ("how do you handle X compared to others"), generic language about features that suggests they're copying a checklist across vendors, and moments where they seem to already know the answer to a question they're asking. Those are evaluation mode signals. The deal that looks warm may already be decided.`,
     cache_control:{type:'ephemeral'}
   };
 
@@ -934,19 +952,56 @@ Wrap the email body ONLY in <email></email> tags. No subject line. No greeting l
       body:JSON.stringify({
         model:STATE.model,
         max_tokens:2000,
+        stream:true,
         system:[personaBlock,transcriptBlock],
         messages:STATE.tcChats[m.id].map(x=>({role:x.role,content:x.content}))
       })});
-    const data=await res.json();
-    if(data.error){
-      const msg=data.error.type==='rate_limit_error'
-        ?'Rate limit hit — wait a moment and try again.'
-        :`API error: ${data.error.message}`;
-      STATE.tcChats[m.id].push({role:'assistant',content:msg});
+
+    const ct=res.headers.get('content-type')||'';
+    let rawReply='';
+
+    if(res.ok&&ct.includes('text/event-stream')){
+      // Streaming path — update the "Thinking…" element directly, throttled
+      const reader=res.body.getReader(),decoder=new TextDecoder();
+      let buffer='',renderScheduled=false;
+      const scheduleStreamRender=()=>{
+        if(renderScheduled)return;
+        renderScheduled=true;
+        setTimeout(()=>{
+          renderScheduled=false;
+          const el=document.querySelector('.msg-thinking');
+          if(el){el.className='msg-assistant-body';el.innerHTML=markdownToHtml(rawReply);}
+        },80);
+      };
+      while(true){
+        const{done,value}=await reader.read();if(done)break;
+        buffer+=decoder.decode(value,{stream:true});
+        const lines=buffer.split('\n');buffer=lines.pop()||'';
+        for(const line of lines){
+          if(!line.startsWith('data: '))continue;
+          const js=line.slice(6).trim();if(js==='[DONE]')continue;
+          try{
+            const ev=JSON.parse(js);
+            if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){rawReply+=ev.delta.text;scheduleStreamRender();}
+            if(ev.type==='error')throw new Error(ev.error?.message||'Stream error');
+          }catch(pe){if(pe.message!=='Stream error')continue;throw pe;}
+        }
+      }
     }else{
-      const reply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-      STATE.tcChats[m.id].push({role:'assistant',content:reply||'No response — try again.'});
+      // Non-streaming fallback (e.g. rate limit response comes back as JSON)
+      const data=await res.json();
+      if(data.error){
+        const errMsg=data.error.type==='rate_limit_error'
+          ?'Rate limit hit — wait a moment and try again.'
+          :`API error: ${data.error.message}`;
+        STATE.tcChats[m.id].push({role:'assistant',content:errMsg});
+        saveState();delete STATE.generating[m.id];renderDealRoomPane(m);return;
+      }
+      rawReply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
     }
+
+    // Push final reply — full re-render handles email card detection and proper structure
+    STATE.tcChats[m.id].push({role:'assistant',content:rawReply||'No response — try again.'});
     saveState();
   }catch(e){
     console.error(e);
@@ -968,13 +1023,15 @@ function buildToc(){
     item.addEventListener('click',()=>{const t=document.getElementById(item.dataset.target);if(t&&sc)sc.scrollTo({top:t.offsetTop-20,behavior:'smooth'});});
   });
   if(!sc)return;
-  const obs=new IntersectionObserver(entries=>{
+  // Disconnect the previous observer before creating a new one — prevents unbounded accumulation
+  if(STATE.tocObserver){STATE.tocObserver.disconnect();STATE.tocObserver=null;}
+  STATE.tocObserver=new IntersectionObserver(entries=>{
     entries.forEach(e=>{if(e.isIntersecting){
       tocCol.querySelectorAll('.toc-item').forEach(t=>t.classList.remove('active'));
       const a=tocCol.querySelector(`[data-target="${e.target.id}"]`);if(a)a.classList.add('active');
     }});
   },{root:sc,threshold:0,rootMargin:'0px 0px -75% 0px'});
-  headings.forEach(h=>obs.observe(h));
+  headings.forEach(h=>STATE.tocObserver.observe(h));
   const first=tocCol.querySelector('.toc-item');if(first)first.classList.add('active');
 }
 
@@ -1191,21 +1248,82 @@ One outcome. Not "have a good conversation." The specific thing that has to happ
 
 Research deeply. Names, numbers, real context. If you cannot find something say so — do not fill gaps with plausible fiction. Direct warm tone. Markdown.`;
 
-function getBriefPrompt(meetingId){
+// Returns a system blocks array with cache_control on each block.
+// Splitting static prompt from transcript content lets Anthropic cache both independently.
+function getBriefSystemBlocks(meetingId){
   const custom=STATE.briefTemplate.trim();
   const transcripts=STATE.transcripts[meetingId];
   const hasPrior=Array.isArray(transcripts)&&transcripts.length>0;
-  // When prior transcripts exist and no custom template, use the informed brief prompt
   let base=custom
-    ?`You are Doss, a sales intelligence tool for an AE at Aleph.\n${ALEPH_CONTEXT}\n\nBuild a pre-call brief following these instructions. Research deeply. Be specific. No filler. Markdown.\n\n{{PRIOR_CALL_CONTEXT}}\n\nINSTRUCTIONS:\n${custom}`
+    ?`You are Doss, a sales intelligence tool for an AE at Aleph.\n${ALEPH_CONTEXT}\n\nBuild a pre-call brief following these instructions. Research deeply. Be specific. No filler. Markdown.\n\nINSTRUCTIONS:\n${custom}`
     :(hasPrior?INFORMED_BRIEF_PROMPT:DEFAULT_BRIEF_PROMPT);
+  // Remove placeholder — transcripts go in their own cached block below
+  base=base.replace('{{PRIOR_CALL_CONTEXT}}','');
+  const blocks=[{type:'text',text:base,cache_control:{type:'ephemeral'}}];
   if(hasPrior){
     const ctx=buildTranscriptContext(transcripts,40000);
-    base=base.replace('{{PRIOR_CALL_CONTEXT}}',`PRIOR CALL TRANSCRIPTS — PRIMARY INTELLIGENCE SOURCE. Weight everything here above public research.\n\n${ctx}\n\nUse web research only to fill gaps the transcripts don't cover.`);
-  }else{
-    base=base.replace('{{PRIOR_CALL_CONTEXT}}','');
+    blocks.push({
+      type:'text',
+      text:`PRIOR CALL TRANSCRIPTS — PRIMARY INTELLIGENCE SOURCE. Weight everything here above public research.\n\n${ctx}\n\nUse web research only to fill gaps the transcripts don't cover.`,
+      cache_control:{type:'ephemeral'}
+    });
   }
-  return base;
+  return blocks;
+}
+
+// ── BRIEF STREAM HANDLER ──
+// Shared by generateBrief and generateSEBrief.
+// Throttles DOM updates to every 120ms — previously ran markdownToHtml + buildToc
+// on every single token, causing jank and unbounded IntersectionObserver creation.
+async function streamBriefResponse(res,m){
+  const reader=res.body.getReader(),decoder=new TextDecoder();
+  let rawText='',buffer='',blockType=null,blockName=null,toolBuf='';
+  let renderScheduled=false;
+
+  const scheduleRender=()=>{
+    if(renderScheduled)return;
+    renderScheduled=true;
+    setTimeout(()=>{
+      renderScheduled=false;
+      STATE.briefs[m.id]=markdownToHtml(rawText);
+      const t=document.getElementById('streamTarget');
+      if(t)t.innerHTML=STATE.briefs[m.id];
+    },120);
+  };
+
+  while(true){
+    const{done,value}=await reader.read();if(done)break;
+    buffer+=decoder.decode(value,{stream:true});
+    const lines=buffer.split('\n');buffer=lines.pop()||'';
+    for(const line of lines){
+      if(!line.startsWith('data: '))continue;
+      const js=line.slice(6).trim();if(js==='[DONE]')continue;
+      try{
+        const ev=JSON.parse(js);
+        if(ev.type==='content_block_start'){blockType=ev.content_block?.type;blockName=ev.content_block?.name||null;toolBuf='';}
+        if(ev.type==='content_block_stop'){blockType=null;blockName=null;}
+        if(ev.type==='content_block_delta'&&blockType==='tool_use'&&blockName==='web_search'){
+          toolBuf+=(ev.delta?.partial_json||'');
+          const q=toolBuf.match(/"query"\s*:\s*"([^"\\]*)/);
+          if(q){const el=document.getElementById('searchStatusText');if(el)el.textContent=`Searching: ${q[1]}…`;}
+        }
+        if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
+          rawText+=ev.delta.text;
+          if(rawText.length>80){const ss=document.getElementById('searchStatus');if(ss)ss.classList.add('faded');}
+          scheduleRender();
+        }
+        if(ev.type==='error')throw new Error(ev.error?.message||'Stream error');
+      }catch(pe){if(pe.message!=='Stream error')continue;throw pe;}
+    }
+  }
+  // Final render once — buildToc called exactly once after stream completes
+  if(rawText){
+    STATE.briefs[m.id]=markdownToHtml(rawText);
+    const t=document.getElementById('streamTarget');
+    if(t){t.innerHTML=STATE.briefs[m.id];buildToc();}
+  }else if(!STATE.briefs[m.id]){
+    STATE.briefs[m.id]='<p style="color:var(--text-muted)">Try regenerating.</p>';
+  }
 }
 
 // ── GENERATE BRIEF ──
@@ -1226,8 +1344,8 @@ async function generateBrief(m){
   const hasPriorCalls=Array.isArray(STATE.transcripts[m.id])&&STATE.transcripts[m.id].length>0;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:STATE.model,max_tokens:4000,stream:true,system:getBriefPrompt(m.id),
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:STATE.model,max_tokens:4000,stream:true,system:getBriefSystemBlocks(m.id),
         messages:[{role:'user',content:`Build a dossier. ONLY research EXTERNAL attendees. Do NOT mention anyone from my company (${org||'my company'}).\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n${m.location?'Location: '+m.location:''}\n\nEXTERNAL ATTENDEES:\n${attInfo}\n\n${intNames?'Internal (SKIP): '+intNames:''}\n\n${hasPriorCalls?'NOTE: Prior call transcripts are in the system prompt. Lead with what was uncovered in those calls before supplementing with web research.':''}`}],
         tools:[{type:'web_search_20250305',name:'web_search'}]})});
     const ct=res.headers.get('content-type')||'';
@@ -1236,35 +1354,7 @@ async function generateBrief(m){
       const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
       STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned.</p>';
     }else{
-      const reader=res.body.getReader(),decoder=new TextDecoder();
-      let rawText='',buffer='',blockType=null,blockName=null,toolBuf='';
-      while(true){
-        const{done,value}=await reader.read();if(done)break;
-        buffer+=decoder.decode(value,{stream:true});
-        const lines=buffer.split('\n');buffer=lines.pop()||'';
-        for(const line of lines){
-          if(!line.startsWith('data: '))continue;
-          const js=line.slice(6).trim();if(js==='[DONE]')continue;
-          try{
-            const ev=JSON.parse(js);
-            if(ev.type==='content_block_start'){blockType=ev.content_block?.type;blockName=ev.content_block?.name||null;toolBuf='';}
-            if(ev.type==='content_block_stop'){blockType=null;blockName=null;}
-            if(ev.type==='content_block_delta'&&blockType==='tool_use'&&blockName==='web_search'){
-              toolBuf+=(ev.delta?.partial_json||'');
-              const q=toolBuf.match(/"query"\s*:\s*"([^"\\]*)/);
-              if(q){const el=document.getElementById('searchStatusText');if(el)el.textContent=`Searching: ${q[1]}…`;}
-            }
-            if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
-              rawText+=ev.delta.text;STATE.briefs[m.id]=markdownToHtml(rawText);
-              const t=document.getElementById('streamTarget');if(t){t.innerHTML=STATE.briefs[m.id];buildToc();}
-              if(rawText.length>80){const ss=document.getElementById('searchStatus');if(ss)ss.classList.add('faded');}
-            }
-            if(ev.type==='error')throw new Error(ev.error?.message||'Stream error');
-          }catch(pe){if(pe.message!=='Stream error')continue;throw pe;}
-        }
-      }
-      if(rawText)STATE.briefs[m.id]=markdownToHtml(rawText);
-      else if(!STATE.briefs[m.id])STATE.briefs[m.id]='<p style="color:var(--text-muted)">Try regenerating.</p>';
+      await streamBriefResponse(res,m);
     }
   }catch(e){console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;}
   delete STATE.generating[m.id];saveState();renderMeetingList();renderBriefPane(m);updateActionBtns(m);
@@ -1284,11 +1374,19 @@ async function generateSEBrief(m){
   const org=STATE.orgDomain||'';
   const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
   const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''}`).join('\n')||'- No external attendee details';
-  const systemPrompt=`${SE_BRIEF_PROMPT}\n\nPRIOR CALL TRANSCRIPTS — YOUR PRIMARY SOURCE. Read these before anything else. Lead every section with what was actually said. Use web search only to fill gaps the transcripts don't cover.\n\n${transcriptContext||'No prior transcripts loaded — use web research only, keep it brief.'}`;
+  // Split into cached blocks: static SE prompt + transcript content separately
+  const seSystemBlocks=[
+    {type:'text',text:SE_BRIEF_PROMPT,cache_control:{type:'ephemeral'}},
+    {type:'text',
+     text:transcriptContext
+       ?`PRIOR CALL TRANSCRIPTS — YOUR PRIMARY SOURCE. Read these before anything else. Lead every section with what was actually said. Use web search only to fill gaps the transcripts don't cover.\n\n${transcriptContext}`
+       :'No prior transcripts loaded — use web research only, keep it brief.',
+     cache_control:{type:'ephemeral'}}
+  ];
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:STATE.model,max_tokens:3000,stream:true,system:systemPrompt,
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:STATE.model,max_tokens:3000,stream:true,system:seSystemBlocks,
         messages:[{role:'user',content:`Generate a pre-demo SE brief.\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n\nExternal attendees:\n${attInfo}`}],
         tools:[{type:'web_search_20250305',name:'web_search'}]})});
     const ct=res.headers.get('content-type')||'';
@@ -1297,35 +1395,7 @@ async function generateSEBrief(m){
       const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
       STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned.</p>';
     }else{
-      const reader=res.body.getReader(),decoder=new TextDecoder();
-      let rawText='',buffer='',blockType=null,blockName=null,toolBuf='';
-      while(true){
-        const{done,value}=await reader.read();if(done)break;
-        buffer+=decoder.decode(value,{stream:true});
-        const lines=buffer.split('\n');buffer=lines.pop()||'';
-        for(const line of lines){
-          if(!line.startsWith('data: '))continue;
-          const js=line.slice(6).trim();if(js==='[DONE]')continue;
-          try{
-            const ev=JSON.parse(js);
-            if(ev.type==='content_block_start'){blockType=ev.content_block?.type;blockName=ev.content_block?.name||null;toolBuf='';}
-            if(ev.type==='content_block_stop'){blockType=null;blockName=null;}
-            if(ev.type==='content_block_delta'&&blockType==='tool_use'&&blockName==='web_search'){
-              toolBuf+=(ev.delta?.partial_json||'');
-              const q=toolBuf.match(/"query"\s*:\s*"([^"\\]*)/);
-              if(q){const el=document.getElementById('searchStatusText');if(el)el.textContent=`Searching: ${q[1]}…`;}
-            }
-            if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
-              rawText+=ev.delta.text;STATE.briefs[m.id]=markdownToHtml(rawText);
-              const t=document.getElementById('streamTarget');if(t){t.innerHTML=STATE.briefs[m.id];buildToc();}
-              if(rawText.length>80){const ss=document.getElementById('searchStatus');if(ss)ss.classList.add('faded');}
-            }
-            if(ev.type==='error')throw new Error(ev.error?.message||'Stream error');
-          }catch(pe){if(pe.message!=='Stream error')continue;throw pe;}
-        }
-      }
-      if(rawText)STATE.briefs[m.id]=markdownToHtml(rawText);
-      else if(!STATE.briefs[m.id])STATE.briefs[m.id]='<p style="color:var(--text-muted)">Try regenerating.</p>';
+      await streamBriefResponse(res,m);
     }
   }catch(e){console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;}
   delete STATE.generating[m.id];saveState();renderMeetingList();renderBriefPane(m);updateActionBtns(m);
@@ -1341,7 +1411,6 @@ async function navigateDay(offset){
 
 // ── UTILS ──
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function safeAttr(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;');}
 function timeAgo(ts){if(!ts)return'';const mins=Math.floor((Date.now()-ts)/60000);if(mins<1)return'just now';if(mins<60)return`${mins}m ago`;const hrs=Math.floor(mins/60);if(hrs<24)return`${hrs}h ago`;return`${Math.floor(hrs/24)}d ago`;}
 
 function markdownToHtml(t){
