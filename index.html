@@ -10,10 +10,11 @@
 :root {
   --cream-150:#e4ddd0;--cream-200:#dbd3c4;--cream-300:#ccc2b0;--cream-400:#b5a894;
   --bg:#e6dfd4;--paper:#f5f0e8;--paper-border:#cec6b6;
-  /* Warmer, richer dark palette with more amber in it */
-  --dark-900:#0e0b08;--dark-800:#181208;--dark-750:#1e160c;--dark-700:#231a0f;
-  --dark-600:#2c2013;--dark-500:#37291a;--dark-400:#473620;--dark-300:#5c472e;
-  --dark-200:#7a6248;--dark-100:#b09272;--dark-50:#d4b898;
+  /* Dark palette — brown must be visible at high brightness on MacBook and external monitors.
+     Each step: R channel is ~4x B channel so warmth reads at any brightness level. */
+  --dark-900:#120904;--dark-800:#28160a;--dark-750:#321c0d;--dark-700:#3c230f;
+  --dark-600:#482c14;--dark-500:#573618;--dark-400:#67421f;--dark-300:#7c5230;
+  --dark-200:#8a6848;--dark-100:#b09272;--dark-50:#d4b898;
   --accent:#c87941;--accent-warm:#d4894e;--accent-light:#e0a870;
   --accent-bg:rgba(200,121,65,0.13);--accent-border:rgba(200,121,65,0.28);
   --green:#5a8c66;--green-bg:rgba(90,140,102,0.12);--green-border:rgba(90,140,102,0.26);
@@ -37,8 +38,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .sidebar{width:300px;min-width:300px;border-right:1px solid var(--dark-600);display:flex;flex-direction:column;overflow:hidden;position:relative;
   background:var(--dark-800);
   background-image:
-    radial-gradient(ellipse at 50% 110%,rgba(200,121,65,0.12) 0%,transparent 65%),
-    radial-gradient(ellipse at 20% 0%,rgba(200,121,65,0.04) 0%,transparent 50%);
+    radial-gradient(ellipse at 50% 110%,rgba(200,121,65,0.18) 0%,transparent 65%),
+    radial-gradient(ellipse at 20% 0%,rgba(200,121,65,0.07) 0%,transparent 50%);
 }
 .sidebar-header{padding:18px 18px 0;flex-shrink:0;}
 .logo{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
@@ -1017,7 +1018,7 @@ Competitive dynamics. When a prospect is talking to multiple vendors, they rarel
       rawReply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
     }
 
-    // Push final reply — full re-render handles email card detection and proper structure
+    // Push final reply and re-render
     STATE.tcChats[m.id].push({role:'assistant',content:rawReply||'No response — try again.'});
     saveState();
   }catch(e){
