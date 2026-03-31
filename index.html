@@ -355,6 +355,7 @@ const STATE={
   model:'claude-sonnet-4-6',
   briefTemplate:localStorage.getItem('doss_template')||'',
   tocObserver:null, // stored so we can disconnect before recreating
+  aborts:{},       // AbortController per meetingId for in-flight brief streams
 };
 
 function saveState(){
@@ -1291,12 +1292,16 @@ function getBriefSystemBlocks(meetingId){
 
 // ── BRIEF STREAM HANDLER ──
 // Shared by generateBrief and generateSEBrief.
-// Throttles DOM updates to every 120ms — previously ran markdownToHtml + buildToc
-// on every single token, causing jank and unbounded IntersectionObserver creation.
-async function streamBriefResponse(res,m){
+// Runs in the background — switching meetings doesn't kill it.
+// DOM writes are guarded by meeting ID so a background stream never
+// corrupts the UI for a different meeting the user has navigated to.
+async function streamBriefResponse(res,m,signal){
   const reader=res.body.getReader(),decoder=new TextDecoder();
   let rawText='',buffer='',blockType=null,blockName=null,toolBuf='';
   let renderScheduled=false;
+
+  // Only touch the DOM if this meeting is still the active one
+  const isActive=()=>STATE.activeMeetingId===m.id;
 
   const scheduleRender=()=>{
     if(renderScheduled)return;
@@ -1304,42 +1309,51 @@ async function streamBriefResponse(res,m){
     setTimeout(()=>{
       renderScheduled=false;
       STATE.briefs[m.id]=markdownToHtml(rawText);
+      if(!isActive())return; // background — skip DOM
       const t=document.getElementById('streamTarget');
       if(t)t.innerHTML=STATE.briefs[m.id];
     },120);
   };
 
-  while(true){
-    const{done,value}=await reader.read();if(done)break;
-    buffer+=decoder.decode(value,{stream:true});
-    const lines=buffer.split('\n');buffer=lines.pop()||'';
-    for(const line of lines){
-      if(!line.startsWith('data: '))continue;
-      const js=line.slice(6).trim();if(js==='[DONE]')continue;
-      try{
-        const ev=JSON.parse(js);
-        if(ev.type==='content_block_start'){blockType=ev.content_block?.type;blockName=ev.content_block?.name||null;toolBuf='';}
-        if(ev.type==='content_block_stop'){blockType=null;blockName=null;}
-        if(ev.type==='content_block_delta'&&blockType==='tool_use'&&blockName==='web_search'){
-          toolBuf+=(ev.delta?.partial_json||'');
-          const q=toolBuf.match(/"query"\s*:\s*"([^"\\]*)/);
-          if(q){const el=document.getElementById('searchStatusText');if(el)el.textContent=`Searching: ${q[1]}…`;}
-        }
-        if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
-          rawText+=ev.delta.text;
-          if(rawText.length>80){const ss=document.getElementById('searchStatus');if(ss)ss.classList.add('faded');}
-          scheduleRender();
-        }
-        if(ev.type==='error')throw new Error(ev.error?.message||'Stream error');
-      }catch(pe){if(pe.message!=='Stream error')continue;throw pe;}
+  try{
+    while(true){
+      if(signal?.aborted)break;
+      const{done,value}=await reader.read();if(done)break;
+      buffer+=decoder.decode(value,{stream:true});
+      const lines=buffer.split('\n');buffer=lines.pop()||'';
+      for(const line of lines){
+        if(!line.startsWith('data: '))continue;
+        const js=line.slice(6).trim();if(js==='[DONE]')continue;
+        try{
+          const ev=JSON.parse(js);
+          if(ev.type==='content_block_start'){blockType=ev.content_block?.type;blockName=ev.content_block?.name||null;toolBuf='';}
+          if(ev.type==='content_block_stop'){blockType=null;blockName=null;}
+          if(ev.type==='content_block_delta'&&blockType==='tool_use'&&blockName==='web_search'){
+            toolBuf+=(ev.delta?.partial_json||'');
+            const q=toolBuf.match(/"query"\s*:\s*"([^"\\]*)/);
+            if(q&&isActive()){const el=document.getElementById('searchStatusText');if(el)el.textContent=`Searching: ${q[1]}…`;}
+          }
+          if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){
+            rawText+=ev.delta.text;
+            if(rawText.length>80&&isActive()){const ss=document.getElementById('searchStatus');if(ss)ss.classList.add('faded');}
+            scheduleRender();
+          }
+          if(ev.type==='error')throw new Error(ev.error?.message||'Stream error');
+        }catch(pe){if(pe.message!=='Stream error')continue;throw pe;}
+      }
     }
+  }finally{
+    reader.cancel().catch(()=>{}); // release the stream regardless
   }
-  // Final render once — buildToc called exactly once after stream completes
+
+  // Final render — only touch DOM if still active; always update STATE
   if(rawText){
     STATE.briefs[m.id]=markdownToHtml(rawText);
-    const t=document.getElementById('streamTarget');
-    if(t){t.innerHTML=STATE.briefs[m.id];buildToc();}
-  }else if(!STATE.briefs[m.id]){
+    if(isActive()){
+      const t=document.getElementById('streamTarget');
+      if(t){t.innerHTML=STATE.briefs[m.id];buildToc();}
+    }
+  }else if(!STATE.briefs[m.id]&&!signal?.aborted){
     STATE.briefs[m.id]='<p style="color:var(--text-muted)">Try regenerating.</p>';
   }
 }
@@ -1354,6 +1368,11 @@ async function generateBrief(m){
     document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab==='brief'));
     positionPillSlider('brief');
   }
+  // Abort any existing stream for this meeting (e.g. regen mid-flight)
+  if(STATE.aborts[m.id]){STATE.aborts[m.id].abort();delete STATE.aborts[m.id];}
+  const abort=new AbortController();
+  STATE.aborts[m.id]=abort;
+
   STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
   const org=STATE.orgDomain||'';
   const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
@@ -1362,6 +1381,7 @@ async function generateBrief(m){
   const hasPriorCalls=Array.isArray(STATE.transcripts[m.id])&&STATE.transcripts[m.id].length>0;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      signal:abort.signal,
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:STATE.model,max_tokens:4000,stream:true,system:getBriefSystemBlocks(m.id),
         messages:[{role:'user',content:`Build a dossier. ONLY research EXTERNAL attendees. Do NOT mention anyone from my company (${org||'my company'}).\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n${m.location?'Location: '+m.location:''}\n\nEXTERNAL ATTENDEES:\n${attInfo}\n\n${intNames?'Internal (SKIP): '+intNames:''}\n\n${hasPriorCalls?'NOTE: Prior call transcripts are in the system prompt. Lead with what was uncovered in those calls before supplementing with web research.':''}`}],
@@ -1372,10 +1392,21 @@ async function generateBrief(m){
       const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
       STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned.</p>';
     }else{
-      await streamBriefResponse(res,m);
+      await streamBriefResponse(res,m,abort.signal);
     }
-  }catch(e){console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;}
-  delete STATE.generating[m.id];saveState();renderMeetingList();renderBriefPane(m);updateActionBtns(m);
+  }catch(e){
+    if(e.name==='AbortError')return; // clean cancel — no error state
+    console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+  delete STATE.aborts[m.id];
+  delete STATE.generating[m.id];
+  saveState();renderMeetingList();
+  // Only re-render the pane if this meeting is still active
+  if(STATE.activeMeetingId===m.id){renderBriefPane(m);updateActionBtns(m);}
+  else{
+    // Meeting is in background — just update the sidebar dot so user can see it's done
+    renderMeetingList();
+  }
 }
 function copyBrief(){const el=document.querySelector('.brief-paper');if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();}}
 
@@ -1386,6 +1417,9 @@ async function generateSEBrief(m){
   document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab==='brief'));
   document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab==='brief'));
   positionPillSlider('brief');
+  if(STATE.aborts[m.id]){STATE.aborts[m.id].abort();delete STATE.aborts[m.id];}
+  const abort=new AbortController();
+  STATE.aborts[m.id]=abort;
   STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
   const transcripts=STATE.transcripts[m.id]||[];
   const transcriptContext=buildTranscriptContext(transcripts,60000);
@@ -1403,6 +1437,7 @@ async function generateSEBrief(m){
   ];
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      signal:abort.signal,
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:STATE.model,max_tokens:3000,stream:true,system:seSystemBlocks,
         messages:[{role:'user',content:`Generate a pre-demo SE brief.\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n\nExternal attendees:\n${attInfo}`}],
@@ -1413,10 +1448,16 @@ async function generateSEBrief(m){
       const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
       STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned.</p>';
     }else{
-      await streamBriefResponse(res,m);
+      await streamBriefResponse(res,m,abort.signal);
     }
-  }catch(e){console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;}
-  delete STATE.generating[m.id];saveState();renderMeetingList();renderBriefPane(m);updateActionBtns(m);
+  }catch(e){
+    if(e.name==='AbortError')return;
+    console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;
+  }
+  delete STATE.aborts[m.id];
+  delete STATE.generating[m.id];
+  saveState();renderMeetingList();
+  if(STATE.activeMeetingId===m.id){renderBriefPane(m);updateActionBtns(m);}
 }
 
 // ── DAY NAV ──
