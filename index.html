@@ -10,23 +10,23 @@
 :root {
   --cream-150:#e4ddd0;--cream-200:#dbd3c4;--cream-300:#ccc2b0;--cream-400:#b5a894;
   --bg:#e6dfd4;--paper:#f5f0e8;--paper-border:#cec6b6;
-  /* Dark palette — brown must be visible at high brightness on MacBook and external monitors.
-     Each step: R channel is ~4x B channel so warmth reads at any brightness level. */
-  --dark-900:#120904;--dark-800:#28160a;--dark-750:#321c0d;--dark-700:#3c230f;
-  --dark-600:#482c14;--dark-500:#573618;--dark-400:#67421f;--dark-300:#7c5230;
+  /* Dark palette — floor stays readable on all monitors; steps widen downward to restore depth.
+     800 is the sidebar base. 700 is cards/surfaces. Gap between them must be visible. */
+  --dark-900:#0e0804;--dark-800:#28160a;--dark-750:#2e1a0c;--dark-700:#38200e;
+  --dark-600:#452a12;--dark-500:#543416;--dark-400:#67421f;--dark-300:#7c5230;
   --dark-200:#8a6848;--dark-100:#b09272;--dark-50:#d4b898;
   --accent:#c87941;--accent-warm:#d4894e;--accent-light:#e0a870;
-  --accent-bg:rgba(200,121,65,0.13);--accent-border:rgba(200,121,65,0.36);
+  --accent-bg:rgba(200,121,65,0.15);--accent-border:rgba(200,121,65,0.36);
   --green:#5a8c66;--green-bg:rgba(90,140,102,0.12);--green-border:rgba(90,140,102,0.26);
   --yellow:#c49520;--red:#b05a3a;
   --text:#2c2520;--text-secondary:#6b6058;--text-muted:#9c9080;
   --dk-text:#ede6da;--dk-text-secondary:#b09272;--dk-text-muted:#9e7c58;
   --mono:'JetBrains Mono',monospace;--sans:'DM Sans',-apple-system,sans-serif;--serif:'DM Serif Display',Georgia,serif;
   --radius:8px;
-  --shadow-glow:0 0 0 1px rgba(200,121,65,0.20),0 2px 16px rgba(200,121,65,0.14);
+  --shadow-glow:0 0 0 1px rgba(200,121,65,0.28),0 2px 16px rgba(200,121,65,0.20);
   --paper-shadow:0 1px 2px rgba(44,37,32,0.06),0 4px 16px rgba(44,37,32,0.10),0 12px 40px rgba(44,37,32,0.08);
-  /* Depth shadows for dark surfaces */
-  --card-shadow:0 1px 0 rgba(255,255,255,0.04) inset,0 -1px 0 rgba(0,0,0,0.2) inset;
+  /* Card shadow — white inset highlight punched up so it reads on the brown base */
+  --card-shadow:0 1px 0 rgba(255,255,255,0.09) inset,0 -1px 0 rgba(0,0,0,0.35) inset;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
@@ -38,8 +38,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .sidebar{width:300px;min-width:300px;border-right:1px solid var(--dark-600);display:flex;flex-direction:column;overflow:hidden;position:relative;
   background:var(--dark-800);
   background-image:
-    radial-gradient(ellipse at 50% 110%,rgba(200,121,65,0.18) 0%,transparent 65%),
-    radial-gradient(ellipse at 20% 0%,rgba(200,121,65,0.07) 0%,transparent 50%);
+    radial-gradient(ellipse at 50% 110%,rgba(200,121,65,0.28) 0%,transparent 65%),
+    radial-gradient(ellipse at 20% 0%,rgba(200,121,65,0.10) 0%,transparent 50%);
 }
 .sidebar-header{padding:18px 18px 0;flex-shrink:0;}
 .logo{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
@@ -112,6 +112,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .meeting-status{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px;}
 .status-none{background:var(--dark-400);}
 .status-ready{background:#6b9c77;box-shadow:0 0 6px rgba(90,140,102,0.4);}
+.status-queued{background:var(--accent);opacity:0.5;}
 .status-generating{background:var(--yellow);animation:pulse 1.5s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 .meeting-name{font-weight:600;font-size:12.5px;color:var(--dk-text);margin-bottom:1px;line-height:1.3;}
@@ -354,8 +355,10 @@ const STATE={
   meetingIndex:{},contextFetchTime:{},
   model:'claude-sonnet-4-6',
   briefTemplate:localStorage.getItem('doss_template')||'',
-  tocObserver:null, // stored so we can disconnect before recreating
-  aborts:{},       // AbortController per meetingId for in-flight brief streams
+  tocObserver:null,
+  aborts:{},
+  briefQueue:[],    // FIFO queue of meeting objects waiting to generate
+  queueRunning:false, // whether the queue processor is active
 };
 
 function saveState(){
@@ -575,7 +578,8 @@ function renderMeetingList(){
   count.textContent=meetings.length;const tz=getTzAbbr();
   list.innerHTML=meetings.map(m=>{
     const isActive=m.id===STATE.activeMeetingId,hasBrief=!!STATE.briefs[m.id],isGen=!!STATE.generating[m.id];
-    const sc=isGen?'status-generating':hasBrief?'status-ready':'status-none';
+    const isQueued=STATE.briefQueue.some(q=>q.id===m.id);
+    const sc=isGen?'status-generating':isQueued?'status-queued':hasBrief?'status-ready':'status-none';
     const ac=(m.attendees||[]).length;
     return`<div class="meeting-card ${isActive?'active':''}" data-id="${m.id}">
       <div class="meeting-card-top"><span class="meeting-time">${formatTimeRange(m.startTime,m.endTime)} ${tz}</span><span class="meeting-status ${sc}"></span></div>
@@ -657,11 +661,11 @@ function updateActionBtns(meeting){
     wrap.innerHTML='';
   }
 
-  document.getElementById('btnGen')?.addEventListener('click',()=>generateBrief(meeting));
-  document.getElementById('btnRegen')?.addEventListener('click',()=>generateBrief(meeting));
+  document.getElementById('btnGen')?.addEventListener('click',()=>queueBrief(meeting));
+  document.getElementById('btnRegen')?.addEventListener('click',()=>queueBrief(meeting,true));
   document.getElementById('btnCopy')?.addEventListener('click',copyBrief);
   document.getElementById('btnSEBrief')?.addEventListener('click',()=>generateSEBrief(meeting));
-  document.getElementById('btnAEBrief')?.addEventListener('click',()=>generateBrief(meeting));
+  document.getElementById('btnAEBrief')?.addEventListener('click',()=>queueBrief(meeting));
 }
 
 // ── BRIEF PANE ──
@@ -1356,6 +1360,29 @@ async function streamBriefResponse(res,m,signal){
   }else if(!STATE.briefs[m.id]&&!signal?.aborted){
     STATE.briefs[m.id]='<p style="color:var(--text-muted)">Try regenerating.</p>';
   }
+}
+
+// ── BRIEF QUEUE ──
+// Prevents simultaneous API requests that hit rate limits.
+// Dossiers generate one at a time; sidebar dots reflect queue position.
+function queueBrief(m,front=false){
+  // If already generating this meeting, ignore
+  if(STATE.generating[m.id]==='brief')return;
+  // Remove any existing queue entry for this meeting first
+  STATE.briefQueue=STATE.briefQueue.filter(q=>q.id!==m.id);
+  // Regen goes to front, new requests go to back
+  if(front)STATE.briefQueue.unshift(m);
+  else STATE.briefQueue.push(m);
+  // Show queued state in sidebar if not already generating something
+  renderMeetingList();
+  if(!STATE.queueRunning)processQueue();
+}
+async function processQueue(){
+  if(STATE.briefQueue.length===0){STATE.queueRunning=false;return;}
+  STATE.queueRunning=true;
+  const m=STATE.briefQueue.shift();
+  await generateBrief(m);
+  processQueue(); // tail-call to next item
 }
 
 // ── GENERATE BRIEF ──
