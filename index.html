@@ -247,6 +247,29 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 /* Thinking indicator */
 .msg-thinking{padding-left:27px;font-size:12.5px;color:var(--text-muted);font-style:italic;}
 
+/* Quick-action chips */
+.deal-room-chips{display:flex;gap:6px;padding:9px 14px;border-bottom:1px solid var(--dark-600);background:var(--dark-800);flex-shrink:0;flex-wrap:wrap;}
+.chip{padding:5px 12px;border-radius:14px;border:1px solid var(--dark-500);background:var(--dark-700);font-family:var(--sans);font-size:11.5px;font-weight:500;color:var(--dk-text-secondary);cursor:pointer;transition:all 0.15s;white-space:nowrap;box-shadow:var(--card-shadow);}
+.chip:hover{background:var(--dark-600);border-color:var(--accent-border);color:var(--dk-text);}
+.chip.chip-email{border-color:rgba(200,121,65,0.3);color:var(--accent);}
+.chip.chip-email:hover{background:var(--accent-bg);border-color:var(--accent-border);}
+.chip:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* Email card — rendered when Doss writes a follow-up email */
+.email-card{margin-left:27px;margin-top:4px;background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid var(--accent);border-radius:4px;overflow:hidden;box-shadow:0 1px 8px rgba(44,37,32,0.08);}
+.email-card-subject{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--paper-border);background:var(--cream-200);}
+.email-card-subject-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-family:var(--mono);flex-shrink:0;}
+.email-card-subject-text{font-size:13px;font-weight:600;color:var(--text);}
+.email-card-body{padding:13px 16px;font-size:13px;line-height:1.65;color:var(--text);white-space:pre-wrap;}
+.email-card-actions{padding:8px 12px;border-top:1px solid var(--paper-border);display:flex;gap:6px;}
+.email-card-btn{padding:4px 11px;border-radius:4px;border:1px solid var(--paper-border);background:transparent;font-family:var(--sans);font-size:11px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
+.email-card-btn:hover{background:var(--cream-150);color:var(--text);}
+.email-card-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 1px 4px rgba(200,121,65,0.2);}
+.email-card-btn.primary:hover{background:var(--accent-warm);}
+
+/* Next-steps card */
+.nextsteps-card{margin-left:27px;margin-top:4px;background:var(--dark-750);border:1px solid var(--dark-500);border-left:3px solid var(--accent);border-radius:4px;overflow:hidden;}
+
 /* Input — dark chrome */
 .deal-room-input{padding:10px 14px;border-top:1px solid var(--dark-600);display:flex;gap:8px;background:var(--dark-800);flex-shrink:0;
   box-shadow:0 -1px 0 rgba(0,0,0,0.2);}
@@ -656,7 +679,7 @@ function updateActionBtns(meeting){
       wrap.innerHTML=`${seBriefBtn}<button class="gen-btn" id="btnGen">Generate Dossier</button>`;
     }
   }else if(STATE.activeTab==='dealroom'){
-    wrap.innerHTML=`${seBriefBtn}<button class="gen-btn" id="btnAEBrief" title="${hasContext?'Informed AE brief built from prior call transcripts':'AE brief — gather context first for full intelligence'}">AE Brief</button>`;
+    wrap.innerHTML=`${seBriefBtn}<button class="gen-btn" id="btnAEBrief" title="${hasContext?'AE brief — full deal intelligence read from transcripts':'No transcripts loaded yet — gather context first'}">AE Brief</button>`;
   }else{
     wrap.innerHTML='';
   }
@@ -665,7 +688,14 @@ function updateActionBtns(meeting){
   document.getElementById('btnRegen')?.addEventListener('click',()=>queueBrief(meeting,true));
   document.getElementById('btnCopy')?.addEventListener('click',copyBrief);
   document.getElementById('btnSEBrief')?.addEventListener('click',()=>generateSEBrief(meeting));
-  document.getElementById('btnAEBrief')?.addEventListener('click',()=>queueBrief(meeting));
+  document.getElementById('btnAEBrief')?.addEventListener('click',()=>{
+    STATE.activeTab='dealroom';
+    document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab==='dealroom'));
+    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab==='dealroom'));
+    positionPillSlider('dealroom');
+    updateActionBtns(meeting);
+    sendDealRoomMsg(meeting,'Give me a full AE brief on this deal. Where does it stand, who are the real players, what are the risks I should be managing, and what are my top three priorities going into the next call?');
+  });
 }
 
 // ── BRIEF PANE ──
@@ -748,16 +778,42 @@ function renderDealRoomPane(m){
           <div class="msg-user"><div class="msg-user-text">${esc(msg.content)}</div></div>
         </div>`;
       }else{
-        msgsHtml+=`<div class="msg-group">
-          <div class="msg-assistant">
-            <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div>
-            <div class="msg-assistant-body">${markdownToHtml(msg.content)}</div>
-            <button class="msg-copy-btn copy-trigger" data-text="${msg.content.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;')}">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-              Copy
-            </button>
-          </div>
-        </div>`;
+        // Detect email format: content starts with "SUBJECT:" or "**Subject:**"
+        const emailMatch=msg.content.match(/^(?:\*\*)?SUBJECT(?:\*\*)?:\s*(.+?)(?:\n)([\s\S]+)$/i);
+        if(emailMatch){
+          const subjectLine=emailMatch[1].trim().replace(/\*\*/g,'');
+          const bodyRaw=emailMatch[2].trim();
+          const bodyEsc=esc(bodyRaw);
+          const dataCopy=msg.content.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;');
+          msgsHtml+=`<div class="msg-group">
+            <div class="msg-assistant">
+              <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div>
+              <div class="email-card">
+                <div class="email-card-subject">
+                  <span class="email-card-subject-label">Subject</span>
+                  <span class="email-card-subject-text">${esc(subjectLine)}</span>
+                </div>
+                <div class="email-card-body">${bodyEsc}</div>
+                <div class="email-card-actions">
+                  <button class="email-card-btn primary copy-trigger" data-text="${dataCopy}">Copy email</button>
+                  <button class="email-card-btn copy-trigger" data-text="${esc(subjectLine)}">Copy subject</button>
+                  <button class="email-card-btn copy-trigger" data-text="${esc(bodyRaw)}">Copy body</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        }else{
+          msgsHtml+=`<div class="msg-group">
+            <div class="msg-assistant">
+              <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div>
+              <div class="msg-assistant-body">${markdownToHtml(msg.content)}</div>
+              <button class="msg-copy-btn copy-trigger" data-text="${msg.content.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;')}">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+          </div>`;
+        }
       }
     });
   }
@@ -766,6 +822,7 @@ function renderDealRoomPane(m){
     msgsHtml+=`<div class="msg-group"><div class="msg-assistant"><div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div><div class="msg-thinking">Thinking…</div></div></div>`;
   }
 
+  const chipsDisabled=isChatting?'disabled':'';
   pane.innerHTML=`<div class="deal-room">
     <div class="context-bar">
       <div class="context-bar-icon">${ctxIconHtml}</div>
@@ -774,6 +831,13 @@ function renderDealRoomPane(m){
         <div class="context-bar-sub">${ctxSub}</div>
       </div>
       ${ctxRight}
+    </div>
+    <div class="deal-room-chips" id="dealChips">
+      <button class="chip chip-email" data-prompt="Write a follow-up email from our most recent call. Pull specific details — what we discussed, what they said, the exact next step. Write in Will's voice: direct, peer-to-peer, no filler, Hemingway short." ${chipsDisabled}>✉ Follow-up email</button>
+      <button class="chip" data-prompt="Where does this deal actually stand right now? Don't summarize — give me a real read. What's the momentum, what's the risk, what am I not seeing?" ${chipsDisabled}>Deal status</button>
+      <button class="chip" data-prompt="What's my single most important next move this week? What specific action should I take, and why?" ${chipsDisabled}>Next move</button>
+      <button class="chip" data-prompt="What objections am I most likely to face next? What specifically should I prepare for based on what they've said?" ${chipsDisabled}>Objections</button>
+      <button class="chip" data-prompt="Who is actually making the decision here — not just who's in the room? What do they personally care about and how do I reach them?" ${chipsDisabled}>Decision maker</button>
     </div>
     <div class="deal-room-msgs" id="tcMsgs">${msgsHtml}</div>
     <div class="deal-room-input">
@@ -806,6 +870,16 @@ function renderDealRoomPane(m){
     tcInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendDealRoomMsg(m);}});
     tcSend.addEventListener('click',()=>sendDealRoomMsg(m));
   }
+  // Quick-action chips
+  document.querySelectorAll('#dealChips .chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      if(chip.disabled)return;
+      const prompt=chip.dataset.prompt;
+      if(!prompt)return;
+      if(tcInput){tcInput.value=prompt;tcInput.style.height='auto';tcInput.style.height=Math.min(tcInput.scrollHeight,100)+'px';}
+      sendDealRoomMsg(m,prompt);
+    });
+  });
 }
 
 // ── GATHER FATHOM CONTEXT ──
@@ -877,13 +951,14 @@ function clearTranscripts(id){
 }
 
 // ── DEAL ROOM CHAT ──
-async function sendDealRoomMsg(m){
+async function sendDealRoomMsg(m,directMsg){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey)return;
-  const input=document.getElementById('tcInput');if(!input)return;
-  const msg=input.value.trim();if(!msg)return;
+  const input=document.getElementById('tcInput');
+  const msg=directMsg||(input?input.value.trim():'');if(!msg)return;
   if(!STATE.tcChats[m.id])STATE.tcChats[m.id]=[];
   STATE.tcChats[m.id].push({role:'user',content:msg});
-  input.value='';input.style.height='auto';
+  if(input&&!directMsg){input.value='';input.style.height='auto';}
+  else if(input){input.value='';input.style.height='auto';}
   STATE.generating[m.id]='chat';
   renderDealRoomPane(m);
 
@@ -935,7 +1010,37 @@ Pay specific attention to the things said in passing — the half-sentences, the
 
 If you're about to write a read and you haven't accounted for every call in the transcript, don't. Go back. The signal you missed is usually in the call you skimmed.
 
-PATTERN RECOGNITION — READ TRANSCRIPTS THROUGH THESE LENSES:
+WRITING FOLLOW-UP EMAILS:
+When Will asks you to write a follow-up email — whether he types it or hits the quick-action button — you write in his voice. Not yours. His.
+
+Will's register: AE-to-CFO, peer-to-peer. Not vendor. Not servile. No hedging.
+
+Hard rules:
+- Never start with "I hope this email finds you well" or any equivalent. Start with the substance.
+- Short sentences. Active voice. No filler words. No throat-clearing.
+- Pull something specific from the call — a problem they named, a number they gave, a question they raised, an exact phrase they used. If it's not grounded in what actually happened, it reads generic and they'll ignore it.
+- One clear next step at the end. When there's a scheduling link, use it: https://scheduler.default.com/aleph/wkraft/aleph-intro
+- Maximum 120 words for the body unless there's a genuine reason for more.
+- Subject line: specific to what happened on this call. Not "Following up" or "Great talking to you."
+
+Format like this when you write an email:
+
+SUBJECT: [subject line]
+
+[email body]
+
+Do not wrap it in markdown code blocks. Do not add commentary before or after unless Will asks for it. Just deliver the email.
+
+COMMAND CENTER MODE — NEXT MOVE:
+When Will asks "what's my next move" or "what should I do," this is not a question for a summary. Give him one specific, concrete action — what to do, who to contact, what to say, why it matters right now. If there are two things genuinely tied in urgency, give him two. Stop there. No lists of six things. No "it depends." Commit to the read.
+
+DEAL STATUS READS:
+When Will asks where the deal stands, give him three things in order:
+1. The honest momentum assessment (green/yellow/red, but say it in plain language — not a traffic light label)
+2. The most important thing he doesn't fully control that's affecting it right now
+3. The one thing he should do in the next 48 hours
+
+Not more than that. If he wants more, he'll ask.
 You have deep knowledge of how mid-market CFOs and finance leaders actually buy SaaS. Use it actively as you read. You are not just recalling what was said — you are interpreting it against known behavioral patterns in this buyer type.
 
 CFO buying signals that are real vs. performative. A CFO who says "this is interesting, send me more" after a first call is not engaged — they're managing you out politely. A CFO who asks a specific operational question, volunteers a pain unprompted, or pulls in a direct report mid-call is actually considering it. The difference is whether they're giving you information or receiving it. Real buyers give information.
