@@ -247,37 +247,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 /* Thinking indicator */
 .msg-thinking{padding-left:27px;font-size:12.5px;color:var(--text-muted);font-style:italic;}
 
-/* Quick-action chips */
-.deal-room-chips{display:flex;gap:5px;padding:8px 14px;border-bottom:1px solid var(--dark-600);background:var(--dark-800);flex-shrink:0;flex-wrap:wrap;}
-.chip{padding:5px 11px;border-radius:14px;border:1px solid var(--dark-500);background:var(--dark-700);font-family:var(--sans);font-size:11.5px;font-weight:500;color:var(--dk-text-secondary);cursor:pointer;transition:all 0.15s;white-space:nowrap;box-shadow:var(--card-shadow);}
-.chip:hover{background:var(--dark-600);border-color:var(--accent-border);color:var(--dk-text);}
-.chip.chip-write{border-color:rgba(200,121,65,0.32);color:var(--accent);}
-.chip.chip-write:hover{background:var(--accent-bg);border-color:var(--accent-border);}
-.chip[disabled]{opacity:0.38;cursor:not-allowed;pointer-events:none;}
-
-/* Email card */
-.msg-email-card{margin-left:27px;margin-top:5px;background:var(--paper);border:1px solid var(--paper-border);border-left:3px solid var(--accent);border-radius:4px;overflow:hidden;box-shadow:0 1px 8px rgba(44,37,32,0.09);}
-.msg-email-card-subject{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--paper-border);background:var(--cream-200);}
-.msg-email-card-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:var(--accent);font-family:var(--mono);flex-shrink:0;}
-.msg-email-card-subject-text{font-size:13px;font-weight:600;color:var(--text);}
-.msg-email-card-body{padding:13px 16px;font-size:13px;line-height:1.65;color:var(--text);white-space:pre-wrap;font-family:var(--sans);}
-.msg-email-card-actions{padding:7px 12px;border-top:1px solid var(--paper-border);display:flex;gap:5px;}
-.msg-card-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--paper-border);background:transparent;font-family:var(--sans);font-size:10.5px;color:var(--text-muted);cursor:pointer;transition:all 0.15s;}
-.msg-card-btn:hover{background:var(--cream-150);color:var(--text);}
-.msg-card-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 1px 4px rgba(200,121,65,0.2);}
-.msg-card-btn.primary:hover{background:var(--accent-warm);}
-
-/* Slack message card */
-.msg-slack-card{margin-left:27px;margin-top:5px;background:var(--dark-750);border:1px solid var(--dark-500);border-left:3px solid #7c3aed;border-radius:4px;overflow:hidden;box-shadow:var(--card-shadow);}
-.msg-slack-card-header{display:flex;align-items:center;gap:7px;padding:7px 13px;border-bottom:1px solid var(--dark-600);background:var(--dark-700);}
-.msg-slack-card-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:#a78bfa;font-family:var(--mono);}
-.msg-slack-card-body{padding:12px 14px;font-size:13px;line-height:1.6;color:var(--dk-text);white-space:pre-wrap;font-family:var(--sans);}
-.msg-slack-card-actions{padding:7px 12px;border-top:1px solid var(--dark-600);display:flex;gap:5px;background:var(--dark-800);}
-.msg-slack-card .msg-card-btn{border-color:var(--dark-500);color:var(--dk-text-muted);}
-.msg-slack-card .msg-card-btn:hover{background:var(--dark-600);color:var(--dk-text);}
-.msg-slack-card .msg-card-btn.primary{background:#7c3aed;border-color:#7c3aed;color:#fff;}
-.msg-slack-card .msg-card-btn.primary:hover{background:#6d28d9;}
-
 /* Input — dark chrome */
 .deal-room-input{padding:10px 14px;border-top:1px solid var(--dark-600);display:flex;gap:8px;background:var(--dark-800);flex-shrink:0;
   box-shadow:0 -1px 0 rgba(0,0,0,0.2);}
@@ -771,63 +740,24 @@ function renderDealRoomPane(m){
   if(msgs.length===0&&!hasTranscripts){
     msgsHtml=`<div class="deal-room-empty">Gather prior call context above, then ask anything —<br>tech stack, vibes, what was quoted, objections…</div>`;
   }else if(msgs.length===0){
-    msgsHtml=`<div class="deal-room-empty">Use the chips above to draft a message or ask anything about this deal.</div>`;
+    msgsHtml=`<div class="deal-room-empty">Ask anything about this deal —<br>tech stack, vibes, what was quoted, objections, follow-up email…</div>`;
   }else{
     msgs.forEach(msg=>{
       if(msg.role==='user'){
-        // Hide internal chip prompts — show a clean label instead
-        const displayContent=msg._chipLabel||esc(msg.content);
         msgsHtml+=`<div class="msg-group">
-          <div class="msg-user"><div class="msg-user-text">${displayContent}</div></div>
+          <div class="msg-user"><div class="msg-user-text">${esc(msg.content)}</div></div>
         </div>`;
       }else{
-        // Detect message type from tag Doss prepends
-        const emailMatch=msg.content.match(/^%%EMAIL%%\n?SUBJECT:\s*(.+?)\n([\s\S]+)$/);
-        const slackMatch=msg.content.match(/^%%SLACK%%\n?([\s\S]+)$/);
-        const copyAttr=v=>v.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;');
-        if(emailMatch){
-          const subj=emailMatch[1].trim();
-          const body=emailMatch[2].trim();
-          msgsHtml+=`<div class="msg-group">
-            <div class="msg-assistant">
-              <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Email draft</span></div>
-              <div class="msg-email-card">
-                <div class="msg-email-card-subject"><span class="msg-email-card-label">Subject</span><span class="msg-email-card-subject-text">${esc(subj)}</span></div>
-                <div class="msg-email-card-body">${esc(body)}</div>
-                <div class="msg-email-card-actions">
-                  <button class="msg-card-btn primary copy-trigger" data-text="${copyAttr(subj+'\n\n'+body)}">Copy email</button>
-                  <button class="msg-card-btn copy-trigger" data-text="${copyAttr(subj)}">Copy subject</button>
-                  <button class="msg-card-btn copy-trigger" data-text="${copyAttr(body)}">Copy body</button>
-                </div>
-              </div>
-            </div>
-          </div>`;
-        }else if(slackMatch){
-          const body=slackMatch[1].trim();
-          msgsHtml+=`<div class="msg-group">
-            <div class="msg-assistant">
-              <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Slack draft</span></div>
-              <div class="msg-slack-card">
-                <div class="msg-slack-card-header"><span class="msg-slack-card-label">Slack message</span></div>
-                <div class="msg-slack-card-body">${esc(body)}</div>
-                <div class="msg-slack-card-actions">
-                  <button class="msg-card-btn primary copy-trigger" data-text="${copyAttr(body)}">Copy message</button>
-                </div>
-              </div>
-            </div>
-          </div>`;
-        }else{
-          msgsHtml+=`<div class="msg-group">
-            <div class="msg-assistant">
-              <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div>
-              <div class="msg-assistant-body">${markdownToHtml(msg.content)}</div>
-              <button class="msg-copy-btn copy-trigger" data-text="${copyAttr(msg.content)}">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                Copy
-              </button>
-            </div>
-          </div>`;
-        }
+        msgsHtml+=`<div class="msg-group">
+          <div class="msg-assistant">
+            <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div>
+            <div class="msg-assistant-body">${markdownToHtml(msg.content)}</div>
+            <button class="msg-copy-btn copy-trigger" data-text="${msg.content.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;')}">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+        </div>`;
       }
     });
   }
@@ -836,7 +766,6 @@ function renderDealRoomPane(m){
     msgsHtml+=`<div class="msg-group"><div class="msg-assistant"><div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div><div class="msg-thinking">Thinking…</div></div></div>`;
   }
 
-  const chipDisabled=isChatting?'disabled':'';
   pane.innerHTML=`<div class="deal-room">
     <div class="context-bar">
       <div class="context-bar-icon">${ctxIconHtml}</div>
@@ -846,17 +775,9 @@ function renderDealRoomPane(m){
       </div>
       ${ctxRight}
     </div>
-    <div class="deal-room-chips" id="dealChips">
-      <button class="chip chip-write" data-type="email" ${chipDisabled}>✉ Follow-up email</button>
-      <button class="chip chip-write" data-type="slack" ${chipDisabled}>💬 Slack message</button>
-      <button class="chip" data-type="intel" data-prompt="Where does this deal actually stand right now? Don't summarize — give me a real read. Momentum, risk, what am I not seeing." ${chipDisabled}>Deal status</button>
-      <button class="chip" data-type="intel" data-prompt="What's my single most important next move this week? Specific action, who to contact, what to say, why it matters now." ${chipDisabled}>Next move</button>
-      <button class="chip" data-type="intel" data-prompt="What objections am I most likely to face next, based specifically on what they've said?" ${chipDisabled}>Objections</button>
-      <button class="chip" data-type="intel" data-prompt="Who is actually making the decision here? Not just who's in the room — who controls this and what do they personally care about?" ${chipDisabled}>Decision maker</button>
-    </div>
     <div class="deal-room-msgs" id="tcMsgs">${msgsHtml}</div>
     <div class="deal-room-input">
-      <textarea class="tc-input" id="tcInput" placeholder="Ask anything about this deal — or use the chips above to draft a message." rows="1"></textarea>
+      <textarea class="tc-input" id="tcInput" placeholder="What's their tech stack? What did I quote them? Where does this deal actually stand?" rows="1"></textarea>
       <button class="tc-send" id="tcSend" ${isChatting?'disabled':''}>Ask</button>
     </div>
   </div>`;
@@ -885,20 +806,6 @@ function renderDealRoomPane(m){
     tcInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendDealRoomMsg(m);}});
     tcSend.addEventListener('click',()=>sendDealRoomMsg(m));
   }
-
-  // Chip handlers
-  document.querySelectorAll('#dealChips .chip').forEach(chip=>{
-    chip.addEventListener('click',()=>{
-      const type=chip.dataset.type;
-      if(type==='email'||type==='slack'){
-        generateWriting(m,type);
-      }else{
-        // Intel chips — send to regular chat
-        const prompt=chip.dataset.prompt;
-        if(prompt)sendDealRoomMsg(m,prompt,chip.textContent.trim());
-      }
-    });
-  });
 }
 
 // ── GATHER FATHOM CONTEXT ──
@@ -970,16 +877,13 @@ function clearTranscripts(id){
 }
 
 // ── DEAL ROOM CHAT ──
-async function sendDealRoomMsg(m,directMsg,chipLabel){
+async function sendDealRoomMsg(m){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey)return;
-  const input=document.getElementById('tcInput');
-  const msg=directMsg||(input?input.value.trim():'');if(!msg)return;
+  const input=document.getElementById('tcInput');if(!input)return;
+  const msg=input.value.trim();if(!msg)return;
   if(!STATE.tcChats[m.id])STATE.tcChats[m.id]=[];
-  const entry={role:'user',content:msg};
-  if(chipLabel)entry._chipLabel=chipLabel;
-  STATE.tcChats[m.id].push(entry);
-  if(input&&!directMsg){input.value='';input.style.height='auto';}
-  else if(input){input.value='';input.style.height='auto';}
+  STATE.tcChats[m.id].push({role:'user',content:msg});
+  input.value='';input.style.height='auto';
   STATE.generating[m.id]='chat';
   renderDealRoomPane(m);
 
@@ -1125,136 +1029,6 @@ Competitive dynamics. When a prospect is talking to multiple vendors, they rarel
   }catch(e){
     console.error(e);
     STATE.tcChats[m.id].push({role:'assistant',content:'Something went wrong. Check your connection and API key.'});
-  }
-  delete STATE.generating[m.id];
-  renderDealRoomPane(m);
-}
-
-// ── WRITING GENERATOR — EMAIL + SLACK ──
-// Separate from deal intelligence. Focused single-job prompt trained on Will's voice.
-async function generateWriting(m,type){
-  const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Add your API key in Settings.');return;}
-  if(!STATE.tcChats[m.id])STATE.tcChats[m.id]=[];
-
-  const transcripts=STATE.transcripts[m.id]||[];
-  const transcriptContext=buildTranscriptContext(transcripts,60000);
-  const externalAttendees=(m.attendees||[]).filter(a=>{
-    const d=emailDomain(a.email);
-    return d&&d!==STATE.orgDomain&&!d.includes('resource.calendar.google.com');
-  });
-  const prospectNames=externalAttendees.map(a=>a.name||a.email).join(', ');
-
-  // Push a user message that shows cleanly in the chat
-  const chipLabel=type==='email'?'✉ Follow-up email':'💬 Slack message';
-  STATE.tcChats[m.id].push({role:'user',content:`Generate a ${type} for this deal.`,_chipLabel:chipLabel});
-  STATE.generating[m.id]='chat';
-  renderDealRoomPane(m);
-
-  const isEmail=type==='email';
-
-  const writingPrompt=`You are a writing assistant for Will Kraft, AE at Aleph. Your only job right now is to write one ${isEmail?'follow-up email':'Slack message'}. Nothing else.
-
-WILL'S IDENTITY: Will Kraft is the AE. He appears in transcripts as "Will", "Will Kraft", or will.kraft@getaleph.com. Aleph people (Kristen, Jeremy, Alex, Ritvik, Tom, Reid, Katie) are colleagues — not the prospect.
-
-CURRENT DEAL: ${m.title}
-Prospect contact(s): ${prospectNames||'see transcripts'}
-
-TRANSCRIPTS — YOUR ONLY SOURCE:
-Read every call. Find the most recent interaction. Your output must be grounded in what was actually said — specific details, exact phrases the prospect used, concrete next steps agreed on. If you can't find something specific, use what you can find. Never invent.
-
-${isEmail?`
-EMAIL RULES — THESE ARE ABSOLUTE:
-
-Opener: "[FirstName]," on its own line. Never "Hi [Name] and team". Never "Dear". Never "Hope this finds you well" or any equivalent. If there are two recipients, pick the primary one.
-
-Line 2: "Thanks for the time [yesterday/today/this week/on [day]]." One sentence. Nothing more.
-
-Line 3: Mirror their exact words back. The most powerful thing in this email is a verbatim phrase from the call. "You mentioned [exact thing they said]." or "You asked about [exact thing]." — this proves you were listening and makes them feel heard before they've read another word.
-
-Body: Short declarative sentences. State the logical next step as obvious, not as a request. "All we need is X. Once that's done, Y." Three to five sentences maximum.
-
-Close: One direct question or single clear ask. "What does [timeframe] look like for you?" or "Can you [specific action] by [day]?" Never "Let me know if you have any questions." Never "Looking forward to hearing from you."
-
-Sign-off: "Will" — just Will. No "Warmly," no "Best," for direct business emails. If it's a sensitive or relationship moment (they shared personal news, a deal died, a big win), use "Warmly,\\nWill".
-
-Subject line: "[Company] | [Specific Action or Topic]" — e.g. "Buildforce | Trial Kickoff" or "Gametime | Pricing". Never "Following up" or "Next Steps" alone.
-
-Max body length: 100 words. If you can say it in 60, do that.
-
-SCHEDULING LINK: https://scheduler.default.com/aleph/wkraft/aleph-intro — include only if scheduling a next call is the actual next step.
-
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS — no other text before or after:
-%%EMAIL%%
-SUBJECT: [subject line here]
-[email body here — no "Subject:" label, just the body starting on this line]
-`:`
-SLACK RULES — THESE ARE ABSOLUTE:
-
-Slack is not email. It is a conversation, not a document. Write like a person, not a vendor.
-
-Length: 1–3 sentences. One point. If there's a list, use Slack bullet format (• item). Maximum 60 words.
-
-Opener: "Hey [FirstName]," or "Hi [FirstName]!" — casual but not sloppy. No opener needed if it's a quick follow-up in an ongoing thread.
-
-No subject line. No sign-off. No "Warmly". End when the point is made.
-
-Tone: Direct, warm, zero friction. Think of it as a text message to someone you've built rapport with. Contractions throughout. Don't write "I wanted to reach out" — just say the thing.
-
-If the next step is scheduling: include the link. https://scheduler.default.com/aleph/wkraft/aleph-intro
-
-FORMAT YOUR RESPONSE EXACTLY LIKE THIS — no other text before or after:
-%%SLACK%%
-[slack message here]
-`}
-
-TRANSCRIPTS:
-${transcriptContext||'No transcripts loaded — write based on the meeting title and attendees.'}`;
-
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':apiKey,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:STATE.model,
-        max_tokens:600,
-        stream:true,
-        system:writingPrompt,
-        messages:[{role:'user',content:`Write the ${type} now. Only output the ${type} in the exact format specified. Nothing else.`}]
-      })});
-
-    let rawReply='';
-    const ct=res.headers.get('content-type')||'';
-    if(res.ok&&ct.includes('text/event-stream')){
-      const reader=res.body.getReader(),decoder=new TextDecoder();
-      let buffer='';
-      while(true){
-        const{done,value}=await reader.read();if(done)break;
-        buffer+=decoder.decode(value,{stream:true});
-        const lines=buffer.split('\n');buffer=lines.pop()||'';
-        for(const line of lines){
-          if(!line.startsWith('data: '))continue;
-          const js=line.slice(6).trim();if(js==='[DONE]')continue;
-          try{
-            const ev=JSON.parse(js);
-            if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta')rawReply+=ev.delta.text;
-            if(ev.type==='error')throw new Error(ev.error?.message||'Stream error');
-          }catch(pe){if(pe.message!=='Stream error')continue;throw pe;}
-        }
-      }
-    }else{
-      const data=await res.json();
-      if(data.error)throw new Error(data.error.message);
-      rawReply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-    }
-    STATE.tcChats[m.id].push({role:'assistant',content:rawReply.trim()||'No output — try again.'});
-    saveState();
-  }catch(e){
-    console.error(e);
-    STATE.tcChats[m.id].push({role:'assistant',content:'Something went wrong. Check your API key.'});
   }
   delete STATE.generating[m.id];
   renderDealRoomPane(m);
@@ -1626,7 +1400,8 @@ async function generateBrief(m){
   const abort=new AbortController();
   STATE.aborts[m.id]=abort;
 
-  STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
+  STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();
+  if(STATE.activeMeetingId===m.id){renderBriefPane(m);updateActionBtns(m);}
   const org=STATE.orgDomain||'';
   const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
   const intNames=(m.attendees||[]).filter(a=>emailDomain(a.email)===org).map(a=>a.name||a.email).join(', ');
@@ -1673,7 +1448,8 @@ async function generateSEBrief(m){
   if(STATE.aborts[m.id]){STATE.aborts[m.id].abort();delete STATE.aborts[m.id];}
   const abort=new AbortController();
   STATE.aborts[m.id]=abort;
-  STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();renderBriefPane(m);updateActionBtns(m);
+  STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();
+  if(STATE.activeMeetingId===m.id){renderBriefPane(m);updateActionBtns(m);}
   const transcripts=STATE.transcripts[m.id]||[];
   const transcriptContext=buildTranscriptContext(transcripts,60000);
   const org=STATE.orgDomain||'';
