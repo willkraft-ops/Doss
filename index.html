@@ -639,33 +639,30 @@ function positionPillSlider(tab){
 
 function updateActionBtns(meeting){
   const wrap=document.getElementById('actionBtns');if(!wrap)return;
-  const hasBrief=!!STATE.briefs[meeting.id],isGenBrief=STATE.generating[meeting.id]==='brief';
+  const hasBrief=!!STATE.briefs[meeting.id];
+  const isGenBrief=STATE.generating[meeting.id]==='brief';
   const hasContext=Array.isArray(STATE.transcripts[meeting.id])&&STATE.transcripts[meeting.id].length>0;
 
+  // Deal Room owns its space — chips handle all actions there
+  if(STATE.activeTab==='dealroom'){wrap.innerHTML='';return;}
+
+  // Brief tab
   if(isGenBrief){
     wrap.innerHTML=`<button class="gen-btn" disabled><span class="spinner"></span> Generating…</button>`;
     return;
   }
 
-  const seBriefBtn=hasContext?`<button class="gen-btn secondary" id="btnSEBrief" title="SE brief — demo sequence, stack, branch points">SE Brief</button>`:'';
-
-  if(STATE.activeTab==='brief'){
-    if(hasBrief){
-      wrap.innerHTML=`${seBriefBtn}<button class="gen-btn secondary" id="btnRegen">↻ Regen</button><button class="gen-btn secondary" id="btnCopy">Copy</button>`;
-    }else{
-      wrap.innerHTML=`${seBriefBtn}<button class="gen-btn" id="btnGen">Generate Dossier</button>`;
-    }
-  }else if(STATE.activeTab==='dealroom'){
-    wrap.innerHTML=`${seBriefBtn}<button class="gen-btn" id="btnAEBrief" title="${hasContext?'Informed AE brief built from prior call transcripts':'AE brief — gather context first for full intelligence'}">AE Brief</button>`;
+  if(hasBrief){
+    const seBtn=hasContext?`<button class="gen-btn secondary" id="btnSEBrief" title="SE brief — demo sequence, stack, branch points">SE Brief</button>`:'';
+    wrap.innerHTML=`${seBtn}<button class="gen-btn secondary" id="btnRegen">↻ Regen</button><button class="gen-btn secondary" id="btnCopy">Copy</button>`;
   }else{
-    wrap.innerHTML='';
+    wrap.innerHTML=`<button class="gen-btn" id="btnGen">Generate Brief</button>`;
   }
 
   document.getElementById('btnGen')?.addEventListener('click',()=>queueBrief(meeting));
   document.getElementById('btnRegen')?.addEventListener('click',()=>queueBrief(meeting,true));
   document.getElementById('btnCopy')?.addEventListener('click',copyBrief);
   document.getElementById('btnSEBrief')?.addEventListener('click',()=>generateSEBrief(meeting));
-  document.getElementById('btnAEBrief')?.addEventListener('click',()=>queueBrief(meeting));
 }
 
 // ── BRIEF PANE ──
