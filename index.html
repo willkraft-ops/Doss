@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Doss — Daily Dossier</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   --cream-150:#e4ddd0;--cream-200:#dbd3c4;--cream-300:#ccc2b0;--cream-400:#b5a894;
@@ -30,8 +30,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;
-  background-image:linear-gradient(rgba(181,112,58,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(181,112,58,0.018) 1px,transparent 1px);background-size:28px 28px;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;}
 .app{display:flex;height:100vh;}
 
 /* SIDEBAR — warm amber underglow, subtle grain */
@@ -361,28 +360,35 @@ const STATE={
   queueRunning:false, // whether the queue processor is active
 };
 
-function saveState(){
-  try{
-    // Persist transcripts with a per-transcript text cap so we don't blow localStorage.
-    // 8K chars per call keeps the raw dialogue useful for buildTranscriptContext
-    // at any budget size while bounding total storage to ~80K per meeting.
-    const transcriptsToSave={};
-    Object.keys(STATE.transcripts).forEach(id=>{
-      const list=STATE.transcripts[id];
-      if(!Array.isArray(list))return;
-      transcriptsToSave[id]=list.map(t=>({...t,transcript:t.transcript?t.transcript.slice(0,8000):''}));
-    });
-    localStorage.setItem('doss_briefs',JSON.stringify(STATE.briefs));
-    localStorage.setItem('doss_tcchats',JSON.stringify(STATE.tcChats));
-    localStorage.setItem('doss_mindex',JSON.stringify(STATE.meetingIndex));
-    localStorage.setItem('doss_fetchtime',JSON.stringify(STATE.contextFetchTime));
-    localStorage.setItem('doss_transcripts',JSON.stringify(transcriptsToSave));
-    // Rough size check — warn if approaching browser limit (~5MB)
-    let total=0;['doss_briefs','doss_tcchats','doss_mindex','doss_fetchtime','doss_transcripts','doss_template']
-      .forEach(k=>{total+=(localStorage.getItem(k)||'').length;});
-    if(total>4_000_000)console.warn(`Doss: localStorage ~${Math.round(total/1024)}KB — consider clearing old data.`);
-  }catch(e){console.warn('Doss: state save failed (storage may be full):',e);}
+// Storage writes split by concern. Callers should use the most specific helper.
+// `saveState` remains as a "save everything" escape hatch for migration paths.
+function _safeSet(key,value){
+  try{localStorage.setItem(key,JSON.stringify(value));}
+  catch(e){console.warn(`Doss: ${key} save failed (storage may be full):`,e);}
 }
+function _checkStorageSize(){
+  let total=0;
+  ['doss_briefs','doss_tcchats','doss_mindex','doss_fetchtime','doss_transcripts','doss_template']
+    .forEach(k=>{total+=(localStorage.getItem(k)||'').length;});
+  if(total>4_000_000)console.warn(`Doss: localStorage ~${Math.round(total/1024)}KB — consider clearing old data.`);
+}
+function saveBriefs(){_safeSet('doss_briefs',STATE.briefs);_checkStorageSize();}
+function saveChats(){_safeSet('doss_tcchats',STATE.tcChats);_checkStorageSize();}
+function saveMeetingIndex(){_safeSet('doss_mindex',STATE.meetingIndex);}
+function saveTranscripts(){
+  // 8K char cap per transcript bounds total storage to ~80K per meeting while keeping
+  // the raw dialogue useful for buildTranscriptContext at any budget size.
+  const out={};
+  Object.keys(STATE.transcripts).forEach(id=>{
+    const list=STATE.transcripts[id];
+    if(!Array.isArray(list))return;
+    out[id]=list.map(t=>({...t,transcript:t.transcript?t.transcript.slice(0,8000):''}));
+  });
+  _safeSet('doss_transcripts',out);
+  _safeSet('doss_fetchtime',STATE.contextFetchTime);
+  _checkStorageSize();
+}
+function saveState(){saveBriefs();saveChats();saveMeetingIndex();saveTranscripts();}
 function loadState(){
   try{
     const b=localStorage.getItem('doss_briefs'),c=localStorage.getItem('doss_tcchats');
@@ -395,29 +401,70 @@ function loadState(){
     if(tr)STATE.transcripts=JSON.parse(tr);
   }catch(e){}
 }
-// Evict orphaned data for meeting IDs no longer in the index.
+// Evict orphaned data for meeting IDs no longer in the index AND data older than 90 days.
 // Runs once on startup after loadState — keeps storage from growing unbounded.
+const TTL_MS=90*24*60*60*1000;
 function cleanupState(){
   const validIds=new Set(Object.keys(STATE.meetingIndex));
-  if(!validIds.size)return; // nothing indexed yet, skip
   let changed=false;
-  [STATE.briefs,STATE.tcChats,STATE.transcripts,STATE.contextFetchTime].forEach(store=>{
-    Object.keys(store).forEach(id=>{
-      if(!validIds.has(id)){delete store[id];changed=true;}
+  // 1. Drop entries for meetings no longer in the index
+  if(validIds.size>0){
+    [STATE.briefs,STATE.tcChats,STATE.transcripts,STATE.contextFetchTime].forEach(store=>{
+      Object.keys(store).forEach(id=>{
+        if(!validIds.has(id)){delete store[id];changed=true;}
+      });
     });
+  }
+  // 2. Drop transcripts/briefs older than TTL based on the meeting's startTime
+  const now=Date.now();
+  Object.keys(STATE.meetingIndex).forEach(id=>{
+    const meta=STATE.meetingIndex[id];
+    const start=meta?.startTime?new Date(meta.startTime).getTime():0;
+    if(start&&(now-start)>TTL_MS){
+      if(STATE.briefs[id]){delete STATE.briefs[id];changed=true;}
+      if(STATE.transcripts[id]){delete STATE.transcripts[id];changed=true;}
+      if(STATE.tcChats[id]){delete STATE.tcChats[id];changed=true;}
+      if(STATE.contextFetchTime[id]){delete STATE.contextFetchTime[id];changed=true;}
+    }
   });
   if(changed)saveState();
 }
 loadState();
-cleanupState(); // evict orphaned briefs/chats/transcripts on startup
+cleanupState(); // evict orphaned + expired briefs/chats/transcripts on startup
 
 // ── GOOGLE AUTH ──
 let tokenClient;
+// One renderer for the Google auth button. State controls SVG + label + .signed-in class.
+const GOOGLE_LOGO_SVG=`<svg width="15" height="15" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>`;
+const GOOGLE_BTN_STATES={
+  'signed-out':{svg:GOOGLE_LOGO_SVG,label:'Sign in with Google',signedIn:false},
+  'signed-in':{svg:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>',label:'Calendar Connected',signedIn:true},
+  'reconnect':{svg:GOOGLE_LOGO_SVG,label:'Reconnect Google',signedIn:false},
+};
+function renderGoogleBtn(state){
+  const btn=document.getElementById('googleBtn');if(!btn)return;
+  const cfg=GOOGLE_BTN_STATES[state];if(!cfg)return;
+  btn.classList.toggle('signed-in',cfg.signedIn);
+  btn.innerHTML=`${cfg.svg} ${cfg.label}`;
+}
 function setGoogleSignedIn(token){
   STATE.accessToken=token;
-  const btn=document.getElementById('googleBtn');
-  btn.classList.add('signed-in');
-  btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg> Calendar Connected';
+  renderGoogleBtn('signed-in');
+}
+// Fetch userinfo with one retry — fixes the silent-fail race where orgDomain stayed empty.
+// Without orgDomain, isExternal returns true for every meeting and gatherFathomContext blocks.
+async function fetchOrgDomain(token,attempt=0){
+  try{
+    const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${token}`}});
+    if(!ui.ok)throw new Error(`userinfo ${ui.status}`);
+    const ud=await ui.json();
+    if(ud?.email){STATE.orgDomain=emailDomain(ud.email);return true;}
+    return false;
+  }catch(e){
+    console.warn(`Doss: userinfo fetch failed (attempt ${attempt+1}):`,e);
+    if(attempt<1){await new Promise(r=>setTimeout(r,1500));return fetchOrgDomain(token,attempt+1);}
+    return false;
+  }
 }
 function initGoogleAuth(){
   if(typeof google==='undefined'||!google.accounts){setTimeout(initGoogleAuth,200);return;}
@@ -429,10 +476,7 @@ function initGoogleAuth(){
         localStorage.setItem('doss_gtoken',JSON.stringify({token:r.access_token,expiry}));
         setGoogleSignedIn(r.access_token);
         // Reliably set orgDomain from the user's own identity — not inferred from attendees
-        try{
-          const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${r.access_token}`}});
-          if(ui.ok){const ud=await ui.json();if(ud.email)STATE.orgDomain=emailDomain(ud.email);}
-        }catch(e){console.warn('userinfo fetch failed:',e);}
+        await fetchOrgDomain(r.access_token);
         loadCurrentDay();backgroundLoadWeek();
       }
     },
@@ -441,9 +485,8 @@ function initGoogleAuth(){
     const s=JSON.parse(localStorage.getItem('doss_gtoken')||'null');
     if(s&&s.token&&s.expiry>Date.now()){
       setGoogleSignedIn(s.token);
-      // Also fetch orgDomain on cached token restore — not just fresh OAuth
-      fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${s.token}`}})
-        .then(r=>r.ok?r.json():null).then(ud=>{if(ud?.email)STATE.orgDomain=emailDomain(ud.email);}).catch(()=>{});
+      // Fetch orgDomain on cached token restore too — fire-and-forget but with retry
+      fetchOrgDomain(s.token);
       loadCurrentDay();backgroundLoadWeek();return;
     }
   }catch(e){}
@@ -465,8 +508,7 @@ async function fetchCalendarEvents(date){
     const res=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,{headers:{Authorization:`Bearer ${STATE.accessToken}`}});
     if(res.status===401){
       STATE.accessToken=null;localStorage.removeItem('doss_gtoken');
-      const btn=document.getElementById('googleBtn');
-      btn.classList.remove('signed-in');btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 001 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Reconnect Google';
+      renderGoogleBtn('reconnect');
       if(tokenClient)setTimeout(()=>tokenClient.requestAccessToken({prompt:''}),300);
       return[];
     }
@@ -489,9 +531,26 @@ function detectOrgDomain(events){
   let best='',max=0;Object.entries(c).forEach(([d,n])=>{if(n>max){best=d;max=n;}});
   return best;
 }
+// Two attendee filter helpers — DO NOT MERGE. They have intentionally different rules.
+//   getExternalAttendees: includes gmail.com prospects (some buyers use personal email).
+//     Used for surfacing in the sidebar, briefs, and chat — never want to drop these.
+//   getExternalDomains: excludes gmail.com (Fathom search by domain on gmail.com is meaningless).
+//     Used only when querying Fathom by calendar_invitees_domains.
+function getExternalAttendees(m,org){
+  return(m.attendees||[]).filter(a=>{
+    const d=emailDomain(a.email);
+    return d&&d!==org&&!d.includes('resource.calendar.google.com');
+  });
+}
+function getExternalDomains(m,org){
+  return[...new Set(getExternalAttendees(m,org)
+    .map(a=>emailDomain(a.email))
+    .filter(d=>!d.includes('gmail.com'))
+  )];
+}
 function isExternal(m,org){
   const att=m.attendees||[];if(att.length<=1)return false;if(!org)return true;
-  return att.some(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
+  return getExternalAttendees(m,org).length>0;
 }
 async function loadDay(date){
   const key=dateKey(date);if(STATE.dayCache[key])return STATE.dayCache[key];
@@ -502,7 +561,7 @@ async function loadDay(date){
   STATE.dayCache[key]=ext;
   // Persist to meetingIndex so search works across all time, not just loaded days
   ext.forEach(m=>{STATE.meetingIndex[m.id]={id:m.id,title:m.title,startTime:m.startTime,endTime:m.endTime,attendees:m.attendees,dateKey:key};});
-  try{localStorage.setItem('doss_mindex',JSON.stringify(STATE.meetingIndex));}catch(e){}
+  saveMeetingIndex();
   return ext;
 }
 async function loadCurrentDay(){
@@ -593,10 +652,15 @@ function renderMeetingList(){
 }
 
 // ── RENDER DETAIL ──
+// Shared empty-state markup for the main panel. Sub-copy varies by site.
+function EMPTY_STATE_HTML(sub){
+  return`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>${sub}</p></div>`;
+}
+
 function renderDetail(){
   const main=document.getElementById('mainPanel');
   const meeting=getCurrentMeetings().find(m=>m.id===STATE.activeMeetingId);
-  if(!meeting){main.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier or open the deal room.</p></div>`;return;}
+  if(!meeting){main.innerHTML=EMPTY_STATE_HTML('Click a meeting to generate a dossier or open the deal room.');return;}
   const tz=getTzAbbr(),attendeeStr=(meeting.attendees||[]).map(a=>a.name||a.email).join(', ');
   const hasBrief=!!STATE.briefs[meeting.id];
   const hasContext=Array.isArray(STATE.transcripts[meeting.id])&&STATE.transcripts[meeting.id].length>0;
@@ -621,13 +685,19 @@ function renderDetail(){
   document.querySelectorAll('.pill-opt').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const tab=btn.dataset.tab;if(tab===STATE.activeTab)return;
-      STATE.activeTab=tab;
-      document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
-      document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab===tab));
-      positionPillSlider(tab);updateActionBtns(meeting);
+      setActiveTab(tab,meeting);
     });
   });
   renderBriefPane(meeting);renderDealRoomPane(meeting);updateActionBtns(meeting);
+}
+
+// Single source of truth for tab switching. Pass `meeting` to also refresh action buttons.
+function setActiveTab(tab,meeting){
+  STATE.activeTab=tab;
+  document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab===tab));
+  positionPillSlider(tab);
+  if(meeting)updateActionBtns(meeting);
 }
 
 function positionPillSlider(tab){
@@ -641,7 +711,6 @@ function updateActionBtns(meeting){
   const wrap=document.getElementById('actionBtns');if(!wrap)return;
   const hasBrief=!!STATE.briefs[meeting.id];
   const isGenBrief=STATE.generating[meeting.id]==='brief';
-  const hasContext=Array.isArray(STATE.transcripts[meeting.id])&&STATE.transcripts[meeting.id].length>0;
 
   // Deal Room owns its space — chips handle all actions there
   if(STATE.activeTab==='dealroom'){wrap.innerHTML='';return;}
@@ -653,8 +722,7 @@ function updateActionBtns(meeting){
   }
 
   if(hasBrief){
-    const seBtn=hasContext?`<button class="gen-btn secondary" id="btnSEBrief" title="SE brief — demo sequence, stack, branch points">SE Brief</button>`:'';
-    wrap.innerHTML=`${seBtn}<button class="gen-btn secondary" id="btnRegen">↻ Regen</button><button class="gen-btn secondary" id="btnCopy">Copy</button>`;
+    wrap.innerHTML=`<button class="gen-btn secondary" id="btnRegen">↻ Regen</button><button class="gen-btn secondary" id="btnCopy">Copy</button>`;
   }else{
     wrap.innerHTML=`<button class="gen-btn" id="btnGen">Generate Brief</button>`;
   }
@@ -662,7 +730,6 @@ function updateActionBtns(meeting){
   document.getElementById('btnGen')?.addEventListener('click',()=>queueBrief(meeting));
   document.getElementById('btnRegen')?.addEventListener('click',()=>queueBrief(meeting,true));
   document.getElementById('btnCopy')?.addEventListener('click',copyBrief);
-  document.getElementById('btnSEBrief')?.addEventListener('click',()=>generateSEBrief(meeting));
 }
 
 // ── BRIEF PANE ──
@@ -687,7 +754,113 @@ function renderBriefPane(m){
   if(hasBrief)requestAnimationFrame(buildToc);
 }
 
+// ── CONTEXT BAR ──
+// State → presentation. Function values are required because the has-transcripts branch
+// renders a dynamic call list and embeds m.id in onclick handlers.
+const CTX_BAR_STATES={
+  'no-key':{
+    icon:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>`,
+    title:()=>'No Fathom key set',
+    sub:()=>`Add your key in <a onclick="document.getElementById('settingsPanel').classList.add('open');document.getElementById('settingsBtn').classList.add('active');">Settings</a> to pull prior call transcripts.`,
+    right:()=>'',
+  },
+  'gathering':{
+    icon:`<span class="spinner dark"></span>`,
+    title:()=>'Searching Fathom…',
+    sub:()=>'Looking for prior recordings in the last 6 months.',
+    right:()=>'',
+  },
+  'has-transcripts':{
+    icon:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>`,
+    title:(m,transcripts)=>{
+      const count=transcripts.length;
+      const fetchedAgo=timeAgo(STATE.contextFetchTime[m.id]);
+      return`${count} call${count!==1?'s':''} in context${fetchedAgo?` <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;margin-left:6px;">${fetchedAgo}</span>`:''}`;
+    },
+    sub:(m,transcripts)=>{
+      const callList=transcripts.map(t=>{
+        const d=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+        return`<span style="display:block;font-size:10.5px;color:var(--dk-text-secondary);line-height:1.6;">${esc(t.title||'Untitled')}${d?` <span style="color:var(--dk-text-muted)">— ${d}</span>`:''}</span>`;
+      }).join('');
+      return`${callList}<span style="display:block;margin-top:4px;font-size:10.5px;"><a onclick="clearTranscripts('${m.id}')">Clear</a> · <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh</a></span>`;
+    },
+    right:(m,transcripts)=>`<div class="context-bar-badge">${transcripts.length}</div>`,
+  },
+  'no-recordings':{
+    icon:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--dk-text-muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>`,
+    title:()=>'No prior recordings found',
+    sub:(m)=>`Nothing in the last 6 months. <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Try again</a>`,
+    right:()=>'',
+  },
+  'idle':{
+    icon:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`,
+    title:()=>'Pull prior call context',
+    sub:()=>'Search Fathom for every recorded call with this account in the last 6 months.',
+    right:(m)=>`<button class="context-bar-gather" onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Gather Context</button>`,
+  },
+};
+function buildContextBar(state,m,transcripts){
+  const cfg=CTX_BAR_STATES[state];
+  return{
+    icon:cfg.icon,
+    title:cfg.title(m,transcripts),
+    sub:cfg.sub(m,transcripts),
+    right:cfg.right(m,transcripts),
+  };
+}
+
 // ── DEAL ROOM PANE ──
+// Single message HTML — used both in full pane render and append-only stream path.
+function msgGroupHTML(msg){
+  if(msg.role==='user'){
+    return`<div class="msg-group">
+      <div class="msg-user"><div class="msg-user-text">${esc(msg.content)}</div></div>
+    </div>`;
+  }
+  return`<div class="msg-group">
+    <div class="msg-assistant">
+      <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div>
+      <div class="msg-assistant-body">${markdownToHtml(msg.content)}</div>
+      <button class="msg-copy-btn copy-trigger" data-text="${escAttr(msg.content)}">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+  </div>`;
+}
+
+// Capture whether the user is near the bottom — only auto-scroll if they are.
+// Scrolling up to read past messages should survive a re-render.
+function _isNearBottom(el,threshold=50){
+  if(!el)return true;
+  return(el.scrollHeight-el.scrollTop-el.clientHeight)<=threshold;
+}
+function _scrollToBottom(el){if(el)el.scrollTop=el.scrollHeight;}
+
+// Append a finalized message group directly. Scroll only if user was already at bottom.
+function appendMsgGroup(msg){
+  const tcMsgs=document.getElementById('tcMsgs');if(!tcMsgs)return;
+  const empty=tcMsgs.querySelector('.deal-room-empty');if(empty)empty.remove();
+  const wasAtBottom=_isNearBottom(tcMsgs);
+  tcMsgs.insertAdjacentHTML('beforeend',msgGroupHTML(msg));
+  if(wasAtBottom)_scrollToBottom(tcMsgs);
+}
+
+// Append the streaming "Thinking…" assistant placeholder that gets updated in place.
+// Returns the DOM element so the stream loop can update it without re-querying.
+function appendThinkingPlaceholder(){
+  const tcMsgs=document.getElementById('tcMsgs');if(!tcMsgs)return null;
+  const empty=tcMsgs.querySelector('.deal-room-empty');if(empty)empty.remove();
+  const wasAtBottom=_isNearBottom(tcMsgs);
+  tcMsgs.insertAdjacentHTML('beforeend',
+    `<div class="msg-group" data-streaming="1"><div class="msg-assistant">
+      <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div>
+      <div class="msg-thinking">Thinking…</div>
+    </div></div>`);
+  if(wasAtBottom)_scrollToBottom(tcMsgs);
+  return tcMsgs.querySelector('.msg-group[data-streaming="1"]');
+}
+
 function renderDealRoomPane(m){
   const pane=document.getElementById('dealroomPane');if(!pane)return;
   if(!STATE.tcChats[m.id])STATE.tcChats[m.id]=[];
@@ -697,91 +870,57 @@ function renderDealRoomPane(m){
   const isGathering=!!STATE.gatheringContext[m.id];
   const isChatting=STATE.generating[m.id]==='chat';
 
-  // Context bar
-  let ctxTitle,ctxSub,ctxRight='',ctxIconHtml;
-  if(!fathomKey){
-    ctxIconHtml=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>`;
-    ctxTitle='No Fathom key set';
-    ctxSub=`Add your key in <a onclick="document.getElementById('settingsPanel').classList.add('open');document.getElementById('settingsBtn').classList.add('active');">Settings</a> to pull prior call transcripts.`;
-  }else if(isGathering){
-    ctxIconHtml=`<span class="spinner dark"></span>`;
-    ctxTitle='Searching Fathom…';
-    ctxSub='Looking for prior recordings in the last 6 months.';
+  // Capture scroll position from the existing #tcMsgs (if any) so the user doesn't
+  // get yanked to bottom every re-render.
+  const oldTcMsgs=document.getElementById('tcMsgs');
+  const wasAtBottom=oldTcMsgs?_isNearBottom(oldTcMsgs):true;
 
-  }else if(hasTranscripts){
-    ctxIconHtml=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>`;
-    const count=transcripts.length;
-    const fetchedAgo=timeAgo(STATE.contextFetchTime[m.id]);
-    const callList=transcripts.map(t=>{
-      const d=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-      return`<span style="display:block;font-size:10.5px;color:var(--dk-text-secondary);line-height:1.6;">${esc(t.title||'Untitled')}${d?` <span style="color:var(--dk-text-muted)">— ${d}</span>`:''}</span>`;
-    }).join('');
-    ctxTitle=`${count} call${count!==1?'s':''} in context${fetchedAgo?` <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;margin-left:6px;">${fetchedAgo}</span>`:''}`;
-    ctxSub=`${callList}<span style="display:block;margin-top:4px;font-size:10.5px;"><a onclick="clearTranscripts('${m.id}')">Clear</a> · <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh</a></span>`;
-    ctxRight=`<div class="context-bar-badge">${count}</div>`;
-  }else if(Array.isArray(transcripts)&&transcripts.length===0){
-    ctxIconHtml=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--dk-text-muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg>`;
-    ctxTitle='No prior recordings found';
-    ctxSub=`Nothing in the last 6 months. <a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Try again</a>`;
-  }else{
-    ctxIconHtml=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`;
-    ctxTitle='Pull prior call context';
-    ctxSub='Search Fathom for every recorded call with this account in the last 6 months.';
-    ctxRight=`<button class="context-bar-gather" onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Gather Context</button>`;
-  }
+  // Context bar — pick state, then look up presentation in CTX_BAR_STATES.
+  let state;
+  if(!fathomKey)state='no-key';
+  else if(isGathering)state='gathering';
+  else if(hasTranscripts)state='has-transcripts';
+  else if(Array.isArray(transcripts)&&transcripts.length===0)state='no-recordings';
+  else state='idle';
+  const ctx=buildContextBar(state,m,transcripts);
 
   // Build messages HTML
   const msgs=STATE.tcChats[m.id]||[];
   let msgsHtml='';
-
   if(msgs.length===0&&!hasTranscripts){
     msgsHtml=`<div class="deal-room-empty">Gather prior call context above, then ask anything —<br>tech stack, vibes, what was quoted, objections…</div>`;
   }else if(msgs.length===0){
     msgsHtml=`<div class="deal-room-empty">Ask anything about this deal —<br>tech stack, vibes, what was quoted, objections, follow-up email…</div>`;
   }else{
-    msgs.forEach(msg=>{
-      if(msg.role==='user'){
-        msgsHtml+=`<div class="msg-group">
-          <div class="msg-user"><div class="msg-user-text">${esc(msg.content)}</div></div>
-        </div>`;
-      }else{
-        msgsHtml+=`<div class="msg-group">
-          <div class="msg-assistant">
-            <div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div>
-            <div class="msg-assistant-body">${markdownToHtml(msg.content)}</div>
-            <button class="msg-copy-btn copy-trigger" data-text="${msg.content.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/\n/g,'&#10;').replace(/\r/g,'&#13;')}">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-              Copy
-            </button>
-          </div>
-        </div>`;
-      }
-    });
+    msgsHtml=msgs.map(msgGroupHTML).join('');
+  }
+  if(isChatting){
+    msgsHtml+=`<div class="msg-group" data-streaming="1"><div class="msg-assistant"><div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div><div class="msg-thinking">Thinking…</div></div></div>`;
   }
 
-  if(isChatting){
-    msgsHtml+=`<div class="msg-group"><div class="msg-assistant"><div class="msg-assistant-header"><div class="msg-avatar">D</div><span class="msg-avatar-label">Doss</span></div><div class="msg-thinking">Thinking…</div></div></div>`;
-  }
+  const cancelBtn=isChatting
+    ?`<button class="tc-send" id="tcCancel" style="background:var(--dark-600);">Cancel</button>`
+    :`<button class="tc-send" id="tcSend">Ask</button>`;
 
   pane.innerHTML=`<div class="deal-room">
     <div class="context-bar">
-      <div class="context-bar-icon">${ctxIconHtml}</div>
+      <div class="context-bar-icon">${ctx.icon}</div>
       <div class="context-bar-text">
-        <div class="context-bar-title">${ctxTitle}</div>
-        <div class="context-bar-sub">${ctxSub}</div>
+        <div class="context-bar-title">${ctx.title}</div>
+        <div class="context-bar-sub">${ctx.sub}</div>
       </div>
-      ${ctxRight}
+      ${ctx.right}
     </div>
     <div class="deal-room-msgs" id="tcMsgs">${msgsHtml}</div>
     <div class="deal-room-input">
-      <textarea class="tc-input" id="tcInput" placeholder="What's their tech stack? What did I quote them? Where does this deal actually stand?" rows="1"></textarea>
-      <button class="tc-send" id="tcSend" ${isChatting?'disabled':''}>Ask</button>
+      <textarea class="tc-input" id="tcInput" placeholder="What's their tech stack? What did I quote them? Where does this deal actually stand?" rows="1" ${isChatting?'disabled':''}></textarea>
+      ${cancelBtn}
     </div>
   </div>`;
 
   const tcMsgs=document.getElementById('tcMsgs');
   if(tcMsgs){
-    tcMsgs.scrollTop=99999;
+    if(wasAtBottom)_scrollToBottom(tcMsgs);
     tcMsgs.addEventListener('click',e=>{
       const btn=e.target.closest('.copy-trigger');if(!btn)return;
       const text=btn.dataset.text||'';
@@ -798,11 +937,15 @@ function renderDealRoomPane(m){
 
   const tcInput=document.getElementById('tcInput');
   const tcSend=document.getElementById('tcSend');
-  if(tcInput&&tcSend){
+  const tcCancel=document.getElementById('tcCancel');
+  if(tcInput){
     tcInput.addEventListener('input',()=>{tcInput.style.height='auto';tcInput.style.height=Math.min(tcInput.scrollHeight,100)+'px';});
     tcInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendDealRoomMsg(m);}});
-    tcSend.addEventListener('click',()=>sendDealRoomMsg(m));
   }
+  if(tcSend)tcSend.addEventListener('click',()=>sendDealRoomMsg(m));
+  if(tcCancel)tcCancel.addEventListener('click',()=>{
+    const a=STATE.aborts[m.id];if(a)a.abort();
+  });
 }
 
 // ── GATHER FATHOM CONTEXT ──
@@ -812,11 +955,12 @@ async function gatherFathomContext(m){
   const proxyUrl=(localStorage.getItem('doss_proxyurl')||'').replace(/\/$/,'');
   if(!fathomKey){alert('Add your Fathom API key in Settings first.');return;}
   if(!proxyUrl){alert('Add your Fathom Proxy URL in Settings first.');return;}
-  if(!STATE.orgDomain){alert('Calendar still loading — try again in a moment.');return;}
-  const externalDomains=[...new Set(
-    (m.attendees||[]).map(a=>emailDomain(a.email))
-      .filter(d=>d&&d!==STATE.orgDomain&&!d.includes('resource.calendar.google.com')&&!d.includes('gmail.com'))
-  )];
+  // Retry orgDomain detection if it's still empty — covers the userinfo silent-fail case
+  if(!STATE.orgDomain&&STATE.accessToken){
+    await fetchOrgDomain(STATE.accessToken);
+  }
+  if(!STATE.orgDomain){alert('Could not detect your org domain. Sign out and back in, or check Google permissions.');return;}
+  const externalDomains=getExternalDomains(m,STATE.orgDomain);
   if(!externalDomains.length){alert('No external attendees found for this meeting.');return;}
   console.log('Doss: gathering context for domains:',externalDomains.join(', '));
   delete STATE.transcripts[m.id];
@@ -856,7 +1000,7 @@ async function gatherFathomContext(m){
     const pillBtn=document.querySelector('.pill-opt[data-tab="dealroom"]');
     if(pillBtn&&STATE.transcripts[m.id].length>0&&!pillBtn.querySelector('.pill-dot'))pillBtn.insertAdjacentHTML('beforeend','<span class="pill-dot"></span>');
     STATE.contextFetchTime[m.id]=Date.now();
-    saveState();
+    saveTranscripts();
   }catch(e){
     console.error('Doss: Fathom error:',e);
     alert(`Fathom error: ${e.message}`);
@@ -868,7 +1012,8 @@ async function gatherFathomContext(m){
 }
 
 function clearTranscripts(id){
-  delete STATE.transcripts[id];STATE.tcChats[id]=[];saveState();
+  if(!confirm('Clear prior call transcripts AND chat history for this meeting? Cannot be undone.'))return;
+  delete STATE.transcripts[id];STATE.tcChats[id]=[];saveTranscripts();saveChats();
   const m=getCurrentMeetings().find(x=>x.id===id);
   if(m){renderDealRoomPane(m);updateActionBtns(m);}
 }
@@ -878,17 +1023,33 @@ async function sendDealRoomMsg(m){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey)return;
   const input=document.getElementById('tcInput');if(!input)return;
   const msg=input.value.trim();if(!msg)return;
+  if(STATE.generating[m.id]==='chat')return; // already in flight
   if(!STATE.tcChats[m.id])STATE.tcChats[m.id]=[];
-  STATE.tcChats[m.id].push({role:'user',content:msg});
+
+  // Append-only path: push to state, append the user bubble, append a thinking placeholder.
+  // No full pane re-render until completion (or context-bar state change).
+  const userMsg={role:'user',content:msg};
+  STATE.tcChats[m.id].push(userMsg);
   input.value='';input.style.height='auto';
   STATE.generating[m.id]='chat';
-  renderDealRoomPane(m);
+  appendMsgGroup(userMsg);
+  let placeholderGroup=appendThinkingPlaceholder();
+
+  // Swap "Ask" → "Cancel" in the input bar without rebuilding the pane.
+  const tcSendBtn=document.getElementById('tcSend');
+  if(tcSendBtn){
+    tcSendBtn.id='tcCancel';
+    tcSendBtn.textContent='Cancel';
+    tcSendBtn.style.background='var(--dark-600)';
+  }
+  // Wire abort
+  const abort=new AbortController();
+  STATE.aborts[m.id]=abort;
+  const cancelEl=document.getElementById('tcCancel');
+  if(cancelEl){cancelEl.addEventListener('click',()=>abort.abort());}
 
   const transcripts=STATE.transcripts[m.id]||[];
-  const externalAttendees=(m.attendees||[]).filter(a=>{
-    const d=emailDomain(a.email);
-    return d&&d!==STATE.orgDomain&&!d.includes('resource.calendar.google.com');
-  });
+  const externalAttendees=getExternalAttendees(m,STATE.orgDomain);
   const prospectNames=externalAttendees.map(a=>a.name||a.email).join(', ');
   const prospectDomains=[...new Set(externalAttendees.map(a=>emailDomain(a.email)))].join(', ');
   const transcriptContext=buildTranscriptContext(transcripts,80000);
@@ -960,8 +1121,11 @@ Competitive dynamics. When a prospect is talking to multiple vendors, they rarel
     cache_control:{type:'ephemeral'}
   };
 
+  let rawReply='';
+  let canceled=false;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      signal:abort.signal,
       headers:{
         'Content-Type':'application/json',
         'x-api-key':apiKey,
@@ -978,22 +1142,37 @@ Competitive dynamics. When a prospect is talking to multiple vendors, they rarel
       })});
 
     const ct=res.headers.get('content-type')||'';
-    let rawReply='';
 
     if(res.ok&&ct.includes('text/event-stream')){
-      // Streaming path — update the "Thinking…" element directly, throttled
+      // Paragraph-boundary streaming. Re-render markdown only when a new \n\n boundary
+      // appears in rawReply, throttled lightly. Avoids re-parsing the whole string per token.
       const reader=res.body.getReader(),decoder=new TextDecoder();
-      let buffer='',renderScheduled=false;
+      let buffer='',renderScheduled=false,lastRendered=-1;
+      // Find the body element of the placeholder once; if pane re-renders we re-find.
+      const bodyEl=()=>{
+        const live=document.querySelector('.msg-group[data-streaming="1"] .msg-thinking, .msg-group[data-streaming="1"] .msg-assistant-body');
+        return live;
+      };
+      const renderTick=()=>{
+        renderScheduled=false;
+        const lastBreak=rawReply.lastIndexOf('\n\n');
+        if(lastBreak<=lastRendered)return; // no new paragraph boundary
+        lastRendered=lastBreak;
+        const el=bodyEl();
+        if(!el)return;
+        if(el.classList.contains('msg-thinking')){el.className='msg-assistant-body';}
+        const tcMsgs=document.getElementById('tcMsgs');
+        const wasAtBottom=_isNearBottom(tcMsgs);
+        el.innerHTML=markdownToHtml(rawReply);
+        if(wasAtBottom)_scrollToBottom(tcMsgs);
+      };
       const scheduleStreamRender=()=>{
         if(renderScheduled)return;
         renderScheduled=true;
-        setTimeout(()=>{
-          renderScheduled=false;
-          const el=document.querySelector('.msg-thinking');
-          if(el){el.className='msg-assistant-body';el.innerHTML=markdownToHtml(rawReply);}
-        },80);
+        setTimeout(renderTick,120);
       };
       while(true){
+        if(abort.signal.aborted){canceled=true;break;}
         const{done,value}=await reader.read();if(done)break;
         buffer+=decoder.decode(value,{stream:true});
         const lines=buffer.split('\n');buffer=lines.pop()||'';
@@ -1007,6 +1186,7 @@ Competitive dynamics. When a prospect is talking to multiple vendors, they rarel
           }catch(pe){if(pe.message!=='Stream error')continue;throw pe;}
         }
       }
+      try{await reader.cancel();}catch(_){}
     }else{
       // Non-streaming fallback (e.g. rate limit response comes back as JSON)
       const data=await res.json();
@@ -1015,19 +1195,33 @@ Competitive dynamics. When a prospect is talking to multiple vendors, they rarel
           ?'Rate limit hit — wait a moment and try again.'
           :`API error: ${data.error.message}`;
         STATE.tcChats[m.id].push({role:'assistant',content:errMsg});
-        saveState();delete STATE.generating[m.id];renderDealRoomPane(m);return;
+        saveChats();delete STATE.generating[m.id];delete STATE.aborts[m.id];renderDealRoomPane(m);return;
       }
       rawReply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
     }
 
-    // Push final reply and re-render
-    STATE.tcChats[m.id].push({role:'assistant',content:rawReply||'No response — try again.'});
-    saveState();
+    // Push final reply (with cancel marker if user aborted mid-stream)
+    const finalText=canceled
+      ?(rawReply?rawReply+'\n\n*(canceled)*':'*(canceled before any response)*')
+      :(rawReply||'No response — try again.');
+    STATE.tcChats[m.id].push({role:'assistant',content:finalText});
+    saveChats();
   }catch(e){
-    console.error(e);
-    STATE.tcChats[m.id].push({role:'assistant',content:'Something went wrong. Check your connection and API key.'});
+    if(e.name==='AbortError'){
+      // Aborted before any text arrived — log it as canceled
+      const finalText=rawReply?rawReply+'\n\n*(canceled)*':'*(canceled before any response)*';
+      STATE.tcChats[m.id].push({role:'assistant',content:finalText});
+      saveChats();
+    }else{
+      console.error(e);
+      STATE.tcChats[m.id].push({role:'assistant',content:'Something went wrong. Check your connection and API key.'});
+      saveChats();
+    }
   }
   delete STATE.generating[m.id];
+  delete STATE.aborts[m.id];
+  // Final render — at this point chat state changed enough to justify a full pane render
+  // (Cancel button needs to flip back to Ask, placeholder is gone, new assistant msg is in state).
   renderDealRoomPane(m);
 }
 
@@ -1059,20 +1253,53 @@ function buildToc(){
 // Packs as many recent transcripts as fit within a character budget.
 // Each transcript gets an equal share, but no call is dropped in favor of
 // giving one call the entire budget. Recent calls always come first.
+// Two-pass budget allocation. Earlier version split equally per transcript and wasted
+// the leftover when shorter calls didn't fill their share. Now: short calls take what
+// they need, long calls split the remainder. Recent calls still come first.
 function buildTranscriptContext(transcripts, charBudget){
   if(!transcripts||!transcripts.length)return'';
-  const perBudget=Math.floor(charBudget/transcripts.length);
-  const parts=[];let remaining=charBudget;
-  for(let i=0;i<transcripts.length;i++){
-    if(remaining<500)break;
-    const t=transcripts[i];
+  const SEP_OVERHEAD=15; // approx chars added per transcript for joiners
+  const HEADER_FN=(i,t)=>{
     const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    const header=`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${t.title}${date?' — '+date:''} ===\n`;
-    const alloc=Math.min(perBudget,remaining-header.length);
-    if(alloc<200)break;
-    const body=t.transcript.length>alloc?t.transcript.slice(0,alloc)+'…[truncated]':t.transcript;
-    parts.push(header+body);
-    remaining-=(header.length+body.length+15);
+    return`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${t.title}${date?' — '+date:''} ===\n`;
+  };
+  // Pass 1: figure out per-transcript allocations. Short transcripts take their actual length;
+  // long transcripts share what's left over.
+  const perFairShare=Math.floor(charBudget/transcripts.length);
+  const items=transcripts.map((t,i)=>{
+    const header=HEADER_FN(i,t);
+    const bodyLen=(t.transcript||'').length;
+    return{i,t,header,bodyLen,alloc:0};
+  });
+  let remaining=charBudget;
+  // First pass: claim natural size up to fair share
+  const longItems=[];
+  for(const it of items){
+    const naturalCost=it.header.length+it.bodyLen+SEP_OVERHEAD;
+    const fairCost=it.header.length+perFairShare+SEP_OVERHEAD;
+    if(naturalCost<=fairCost){
+      it.alloc=it.bodyLen;
+      remaining-=naturalCost;
+    }else{
+      longItems.push(it);
+    }
+  }
+  // Second pass: divide remaining budget across items that still want more
+  if(longItems.length>0){
+    const perLong=Math.floor(remaining/longItems.length);
+    for(const it of longItems){
+      const alloc=Math.max(0,perLong-it.header.length-SEP_OVERHEAD);
+      if(alloc<200){it.alloc=0;continue;}
+      it.alloc=alloc;
+      remaining-=(it.header.length+alloc+SEP_OVERHEAD);
+    }
+  }
+  // Build output preserving original order (recent first)
+  const parts=[];
+  for(const it of items){
+    if(it.alloc<=0)continue;
+    const body=it.bodyLen>it.alloc?it.t.transcript.slice(0,it.alloc)+'…[truncated]':it.t.transcript;
+    parts.push(it.header+body);
   }
   return parts.join('\n\n---\n\n');
 }
@@ -1134,67 +1361,6 @@ ANAPLAN — different market entirely
 We win: Implementation >12 months, extremely hard to modify.
 We lose: Only in specific cases — highly standardized repeatable processes, heavy multi-scenario planning at scale.
 Reality: If we're competing with Anaplan directly, the deal was misqualified. Different buyer, different scale.`
-
-const SE_BRIEF_PROMPT=`You are Doss, generating a pre-demo SE brief for an Aleph SE.
-${ALEPH_CONTEXT}
-
-WILL KRAFT is the AE. He appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people (Kristen, Jeremy, Alex, Ritvik, Tom) are colleagues — not the prospect.
-
-TRANSCRIPT READING — PROPER NOUN CORRECTION:
-Speech-to-text mishears SaaS product names constantly. As you read, silently correct obvious phonetic errors before writing anything. Reference:
-ERPs: NetSuite, Sage Intacct, QuickBooks, Xero, SAP, Oracle, Workday, Acumatica
-HRIS/Payroll: BambooHR, Rippling, Gusto, ADP, Paylocity, Paycom, UKG, Ceridian, HiBob, Justworks, Deel
-CRM/Sales: Salesforce, HubSpot, Pipedrive, Outreach, Salesloft, Gong, Clari, Gainsight
-Data/Analytics: Snowflake, BigQuery, Databricks, Redshift, dbt, Fivetran, Looker, Tableau, Power BI, Sigma, Hex
-FP&A competitors: Anaplan, Planful, Vena, Cube, Datarails, Mosaic, Pigment, Basis, Runway, Causal, Abacum, Vareto
-Finance ops: Carta, Ramp, Brex, Bill.com, Stripe, Coupa, Tipalti, Airbase, Zip, Expensify, Navan
-VC: Sequoia, Andreessen Horowitz, a16z, Kleiner Perkins, Benchmark, Accel, General Catalyst, Bessemer, Lightspeed, Tiger Global, Greylock, First Round, Founders Fund, Craft Ventures, Redpoint, Felicis, Emergence, OpenView
-PE: Thoma Bravo, Vista Equity, Francisco Partners, KKR, Warburg Pincus, Silver Lake, Blackstone, Apollo, Bain Capital, TPG, Summit Partners, TA Associates
-When quoting, use the corrected name. Never mention the correction.
-
-HOW TO SOURCE:
-- Lead every section with what was actually said on calls. Quote their exact words when it adds signal.
-- Use web search only to fill gaps the transcripts don't cover — stack details not mentioned, company background, funding. Keep web research brief and clearly separate from what was said.
-- Never blend inferred research with transcript evidence. If you found something via web that wasn't on a call, put it in a short "Additional context" note at the end of the relevant section, not inline with transcript quotes.
-- If something is unknown from both transcripts and web, say: Unknown — ask on call.
-
-STANDARD ALEPH DEMO SPINE (reference only — your sequence overrides this):
-Integrations → Tables & data layer → Mappings → Spreadsheet add-in (Explorer, Connect, AI Scan) → Dashboards → Headcount planning → Automations & scenarios
-
-NATURAL BRANCH POINTS:
-- Multi-entity/consolidation pain → calculated tables, consolidated P&L
-- Snowflake/data warehouse → SQL exposure, cross-source joins on platform
-- Department visibility asked early → show permissions early, don't save it
-- Forecasting/scenario pain → scenario management, actuals roll-forward
-- Already live on a competitor → establish what their current tool can't do BEFORE screen share. Never discover this mid-demo.
-- Headcount is the hook → spend real time on the full template flow, not a flyby
-- Carta/gap question → acknowledge cleanly, name both workarounds (Snowflake table or CSV schedule). Never promise roadmap as a close.
-
-Produce the following sections. Be direct. No filler. Markdown.
-
-## Who's In the Room
-For each prospect: name, title, what they actually said mattered to them (quote their words), technical comfort level — SQL-aware, spreadsheet-native, executive? Ground every claim in the transcript.
-
-## Their Stack
-Every system mentioned on calls — quote what they said about each. Integration status: native / CSV / workaround needed. Anything painful or manual today. If web research surfaces likely tools not mentioned on calls, note them briefly at the end as "Worth confirming."
-
-## Recommended Demo Sequence
-Not the standard tour. A specific opinionated sequence tied to their stated pain. Name what to lead with and exactly why. Name what to skip or keep short.
-
-## Expected Branch Points
-Where will they pull you off-script? For each: what they'll likely ask (grounded in what they said), what to show, what to say.
-
-## Where It Could Get Complex
-Things that came up in prior calls that weren't fully resolved — specific edge cases, nuanced requirements, or moments where the prospect pushed on something unclear. For each: what they said, the context behind it, and what the SE should know going in. Do not prescribe how to handle it. These are smart people — give them the intelligence and let them own the room.
-
-## They Will Ask...
-3–5 specific technical questions based on their stack and pain. For each: the right answer.
-
-## Displacement Angle
-If they're on a competitor, name it. What can't that tool do that Aleph does? Establish this in the opening orientation before screen share.
-
-## One-Line Technical Fit Assessment
-Clean fit, workable with caveats, or risk? One sentence. No hedging.`;
 
 const INFORMED_BRIEF_PROMPT=`You are Doss, generating an informed pre-call brief for Will Kraft, AE at Aleph.
 ${ALEPH_CONTEXT}
@@ -1292,25 +1458,31 @@ function getBriefSystemBlocks(meetingId){
 }
 
 // ── BRIEF STREAM HANDLER ──
-// Shared by generateBrief and generateSEBrief.
+// Used by generateBrief.
 // Runs in the background — switching meetings doesn't kill it.
 // DOM writes are guarded by meeting ID so a background stream never
 // corrupts the UI for a different meeting the user has navigated to.
 async function streamBriefResponse(res,m,signal){
   const reader=res.body.getReader(),decoder=new TextDecoder();
   let rawText='',buffer='',blockType=null,blockName=null,toolBuf='';
-  let renderScheduled=false;
+  let renderScheduled=false,lastRendered=-1;
 
   // Only touch the DOM if this meeting is still the active one
   const isActive=()=>STATE.activeMeetingId===m.id;
 
+  // Paragraph-boundary render — re-parse markdown only when a new \n\n appears.
+  // For long briefs this drops markdownToHtml calls from per-token to per-paragraph.
+  // Don't cache the streamTarget element — pane re-renders can replace it.
   const scheduleRender=()=>{
     if(renderScheduled)return;
     renderScheduled=true;
     setTimeout(()=>{
       renderScheduled=false;
+      const lastBreak=rawText.lastIndexOf('\n\n');
+      if(lastBreak<=lastRendered)return;
+      lastRendered=lastBreak;
       STATE.briefs[m.id]=markdownToHtml(rawText);
-      if(!isActive())return; // background — skip DOM
+      if(!isActive())return;
       const t=document.getElementById('streamTarget');
       if(t)t.innerHTML=STATE.briefs[m.id];
     },120);
@@ -1347,7 +1519,7 @@ async function streamBriefResponse(res,m,signal){
     reader.cancel().catch(()=>{}); // release the stream regardless
   }
 
-  // Final render — only touch DOM if still active; always update STATE
+  // Final render — full markdown parse one more time (in case the tail wasn't paragraph-bounded).
   if(rawText){
     STATE.briefs[m.id]=markdownToHtml(rawText);
     if(isActive()){
@@ -1386,12 +1558,7 @@ async function processQueue(){
 async function generateBrief(m){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter your Anthropic API key in Settings.');return;}
   // Switch to brief tab if called from deal room
-  if(STATE.activeTab!=='brief'){
-    STATE.activeTab='brief';
-    document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab==='brief'));
-    document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab==='brief'));
-    positionPillSlider('brief');
-  }
+  if(STATE.activeTab!=='brief')setActiveTab('brief');
   // Abort any existing stream for this meeting (e.g. regen mid-flight)
   if(STATE.aborts[m.id]){STATE.aborts[m.id].abort();delete STATE.aborts[m.id];}
   const abort=new AbortController();
@@ -1400,7 +1567,7 @@ async function generateBrief(m){
   STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();
   if(STATE.activeMeetingId===m.id){renderBriefPane(m);updateActionBtns(m);}
   const org=STATE.orgDomain||'';
-  const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
+  const ext=getExternalAttendees(m,org);
   const intNames=(m.attendees||[]).filter(a=>emailDomain(a.email)===org).map(a=>a.name||a.email).join(', ');
   const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''} | Domain: ${emailDomain(a.email)}`).join('\n')||'- No external attendee details';
   const hasPriorCalls=Array.isArray(STATE.transcripts[m.id])&&STATE.transcripts[m.id].length>0;
@@ -1425,7 +1592,7 @@ async function generateBrief(m){
   }
   delete STATE.aborts[m.id];
   delete STATE.generating[m.id];
-  saveState();renderMeetingList();
+  saveBriefs();renderMeetingList();
   // Only re-render the pane if this meeting is still active
   if(STATE.activeMeetingId===m.id){renderBriefPane(m);updateActionBtns(m);}
   else{
@@ -1433,57 +1600,27 @@ async function generateBrief(m){
     renderMeetingList();
   }
 }
-function copyBrief(){const el=document.querySelector('.brief-paper');if(el){const r=document.createRange();r.selectNodeContents(el);const s=window.getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');s.removeAllRanges();}}
-
-// ── GENERATE SE BRIEF ──
-async function generateSEBrief(m){
-  const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter your Anthropic API key in Settings.');return;}
-  STATE.activeTab='brief';
-  document.querySelectorAll('.pill-opt').forEach(b=>b.classList.toggle('active',b.dataset.tab==='brief'));
-  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active',p.dataset.tab==='brief'));
-  positionPillSlider('brief');
-  if(STATE.aborts[m.id]){STATE.aborts[m.id].abort();delete STATE.aborts[m.id];}
-  const abort=new AbortController();
-  STATE.aborts[m.id]=abort;
-  STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();
-  if(STATE.activeMeetingId===m.id){renderBriefPane(m);updateActionBtns(m);}
-  const transcripts=STATE.transcripts[m.id]||[];
-  const transcriptContext=buildTranscriptContext(transcripts,60000);
-  const org=STATE.orgDomain||'';
-  const ext=(m.attendees||[]).filter(a=>{const d=emailDomain(a.email);return d&&d!==org&&!d.includes('resource.calendar.google.com');});
-  const attInfo=ext.map(a=>`- Name: ${a.name||'Unknown'} | Email: ${a.email||''}`).join('\n')||'- No external attendee details';
-  // Split into cached blocks: static SE prompt + transcript content separately
-  const seSystemBlocks=[
-    {type:'text',text:SE_BRIEF_PROMPT,cache_control:{type:'ephemeral'}},
-    {type:'text',
-     text:transcriptContext
-       ?`PRIOR CALL TRANSCRIPTS — YOUR PRIMARY SOURCE. Read these before anything else. Lead every section with what was actually said. Use web search only to fill gaps the transcripts don't cover.\n\n${transcriptContext}`
-       :'No prior transcripts loaded — use web research only, keep it brief.',
-     cache_control:{type:'ephemeral'}}
-  ];
+// Copy preserving rich text (formatting survives paste into Notion / Slack / Gmail).
+// ClipboardItem path is preferred; falls back to Selection + execCommand on older browsers
+// or non-secure contexts (Safari occasionally blocks the new API).
+async function copyBrief(){
+  const el=document.querySelector('.brief-paper');if(!el)return;
+  const html=el.innerHTML,plain=el.innerText;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      signal:abort.signal,
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:STATE.model,max_tokens:3000,stream:true,system:seSystemBlocks,
-        messages:[{role:'user',content:`Generate a pre-demo SE brief.\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n\nExternal attendees:\n${attInfo}`}],
-        tools:[{type:'web_search_20250305',name:'web_search'}]})});
-    const ct=res.headers.get('content-type')||'';
-    if(!res.ok||!ct.includes('text/event-stream')){
-      const data=await res.json();if(data.error)throw new Error(data.error.message);
-      const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n\n');
-      STATE.briefs[m.id]=text?markdownToHtml(text):'<p style="color:var(--text-muted)">No content returned.</p>';
-    }else{
-      await streamBriefResponse(res,m,abort.signal);
+    if(navigator.clipboard&&window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html':new Blob([html],{type:'text/html'}),
+        'text/plain':new Blob([plain],{type:'text/plain'}),
+      })]);
+      return;
     }
-  }catch(e){
-    if(e.name==='AbortError')return;
-    console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;
-  }
-  delete STATE.aborts[m.id];
-  delete STATE.generating[m.id];
-  saveState();renderMeetingList();
-  if(STATE.activeMeetingId===m.id){renderBriefPane(m);updateActionBtns(m);}
+  }catch(e){console.warn('Doss: ClipboardItem failed, falling back:',e);}
+  // Fallback — Selection + execCommand (rich text usually survives this path too)
+  try{
+    const r=document.createRange();r.selectNodeContents(el);
+    const s=window.getSelection();s.removeAllRanges();s.addRange(r);
+    document.execCommand('copy');s.removeAllRanges();
+  }catch(e){console.warn('Doss: copyBrief fallback failed:',e);}
 }
 
 // ── DAY NAV ──
@@ -1491,11 +1628,13 @@ async function navigateDay(offset){
   STATE.currentDate.setDate(STATE.currentDate.getDate()+offset);STATE.activeMeetingId=null;updateDateBar();
   const key=dateKey(STATE.currentDate);
   if(STATE.dayCache[key])renderMeetingList();else if(STATE.accessToken)await loadCurrentDay();else renderMeetingList();
-  document.getElementById('mainPanel').innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier.</p></div>`;
+  document.getElementById('mainPanel').innerHTML=EMPTY_STATE_HTML('Click a meeting to generate a dossier.');
 }
 
 // ── UTILS ──
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// escAttr also encodes newlines so attribute values survive a round-trip read via dataset.
+function escAttr(s){return esc(s).replace(/\n/g,'&#10;').replace(/\r/g,'&#13;');}
 function timeAgo(ts){if(!ts)return'';const mins=Math.floor((Date.now()-ts)/60000);if(mins<1)return'just now';if(mins<60)return`${mins}m ago`;const hrs=Math.floor(mins/60);if(hrs<24)return`${hrs}h ago`;return`${Math.floor(hrs/24)}d ago`;}
 
 function markdownToHtml(t){
@@ -1518,32 +1657,25 @@ document.getElementById('todayBtn').addEventListener('click',async()=>{
   STATE.currentDate=new Date();STATE.activeMeetingId=null;updateDateBar();
   const key=dateKey(STATE.currentDate);
   if(STATE.dayCache[key])renderMeetingList();else if(STATE.accessToken)await loadCurrentDay();else renderMeetingList();
-  document.getElementById('mainPanel').innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><h3>Select a meeting</h3><p>Click a meeting to generate a dossier.</p></div>`;
+  document.getElementById('mainPanel').innerHTML=EMPTY_STATE_HTML('Click a meeting to generate a dossier.');
 });
 
-const savedKey=localStorage.getItem('doss_apikey');
-if(savedKey){document.getElementById('apiKey').value=savedKey;document.getElementById('apiBar').classList.toggle('connected',savedKey.startsWith('sk-ant-'));}
-document.getElementById('apiKey').addEventListener('input',e=>{
-  const v=e.target.value;
-  document.getElementById('apiBar').classList.toggle('connected',v.startsWith('sk-ant-'));
-  localStorage.setItem('doss_apikey',v);
-});
-const savedFathom=localStorage.getItem('doss_fathomkey');
-if(savedFathom){document.getElementById('fathomKey').value=savedFathom;document.getElementById('fathomBar').classList.add('connected');document.getElementById('fathomDot').style.background='var(--green)';}
-document.getElementById('fathomKey').addEventListener('input',e=>{
-  const v=e.target.value.trim();
-  const bar=document.getElementById('fathomBar'),dot=document.getElementById('fathomDot');
-  if(v){bar.classList.add('connected');dot.style.background='var(--green)';}else{bar.classList.remove('connected');dot.style.background='';}
-  localStorage.setItem('doss_fathomkey',v);
-});
-const savedProxy=localStorage.getItem('doss_proxyurl');
-if(savedProxy){document.getElementById('proxyUrl').value=savedProxy;document.getElementById('proxyBar').classList.add('connected');document.getElementById('proxyDot').style.background='var(--green)';}
-document.getElementById('proxyUrl').addEventListener('input',e=>{
-  const v=e.target.value.trim();
-  const bar=document.getElementById('proxyBar'),dot=document.getElementById('proxyDot');
-  if(v){bar.classList.add('connected');dot.style.background='var(--green)';}else{bar.classList.remove('connected');dot.style.background='';}
-  localStorage.setItem('doss_proxyurl',v);
-});
+// Wire up an api-bar input: persist value to localStorage, toggle .connected class via validator.
+// CSS rule `.api-bar.connected .api-dot` handles dot color — no inline style needed.
+function wireKeyInput(inputId,barId,storageKey,validator){
+  const input=document.getElementById(inputId),bar=document.getElementById(barId);
+  if(!input||!bar)return;
+  const saved=localStorage.getItem(storageKey);
+  if(saved){input.value=saved;bar.classList.toggle('connected',validator(saved));}
+  input.addEventListener('input',e=>{
+    const v=e.target.value.trim();
+    bar.classList.toggle('connected',validator(v));
+    localStorage.setItem(storageKey,v);
+  });
+}
+wireKeyInput('apiKey','apiBar','doss_apikey',v=>v.startsWith('sk-ant-'));
+wireKeyInput('fathomKey','fathomBar','doss_fathomkey',v=>!!v);
+wireKeyInput('proxyUrl','proxyBar','doss_proxyurl',v=>!!v);
 document.getElementById('settingsBtn').addEventListener('click',()=>{
   const p=document.getElementById('settingsPanel'),b=document.getElementById('settingsBtn');
   p.classList.toggle('open');b.classList.toggle('active',p.classList.contains('open'));
