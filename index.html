@@ -305,22 +305,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <input type="text" class="api-input" id="proxyUrl" placeholder="https://…workers.dev" autocomplete="off">
       </div>
       <div class="settings-hint" style="margin-top:4px;">Cloudflare Worker proxy for Fathom API.</div>
-      <label>Granola API Key</label>
-      <div class="api-bar" id="granolaBar">
-        <div class="api-dot"></div><span class="api-lbl">GRA</span>
-        <input type="password" class="api-input" id="granolaKey" placeholder="Granola API key…" autocomplete="off">
-      </div>
-      <label>Granola Proxy URL</label>
-      <div class="api-bar" id="granolaProxyBar">
-        <div class="api-dot"></div><span class="api-lbl">URL</span>
-        <input type="text" class="api-input" id="granolaProxyUrl" placeholder="https://…workers.dev" autocomplete="off">
-      </div>
-      <label>Granola Proxy Token <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--dk-text-muted);">(optional)</span></label>
-      <div class="api-bar" id="granolaTokenBar">
-        <div class="api-dot"></div><span class="api-lbl">TKN</span>
-        <input type="password" class="api-input" id="granolaToken" placeholder="Shared secret if worker requires it…" autocomplete="off">
-      </div>
-      <div class="settings-hint" style="margin-top:4px;">Cloudflare Worker proxy for Granola API. Token is the optional X-Doss-Token shared secret set on the worker.</div>
       <label>Brief Template <span class="save-indicator" id="briefSaved">Saved ✓</span></label>
       <textarea class="settings-textarea" id="briefTemplate" placeholder="Leave blank for the full default dossier."></textarea>
       <div class="settings-hint">Leave blank for the full default dossier.</div>
@@ -550,8 +534,8 @@ function detectOrgDomain(events){
 // Two attendee filter helpers — DO NOT MERGE. They have intentionally different rules.
 //   getExternalAttendees: includes gmail.com prospects (some buyers use personal email).
 //     Used for surfacing in the sidebar, briefs, and chat — never want to drop these.
-//   getExternalDomains: excludes gmail.com (Fathom/Granola search by domain on gmail.com is meaningless).
-//     Used only when querying Fathom/Granola by attendee domain.
+//   getExternalDomains: excludes gmail.com (Fathom search by domain on gmail.com is meaningless).
+//     Used only when querying Fathom by attendee domain.
 function getExternalAttendees(m,org){
   return(m.attendees||[]).filter(a=>{
     const d=emailDomain(a.email);
@@ -773,58 +757,33 @@ function renderBriefPane(m){
 // ── CONTEXT BAR ──
 // State → presentation. Function values are required because the has-transcripts branch
 // renders a dynamic call list and embeds m.id in onclick handlers.
-// Helper for source-aware context bar — count transcripts by source, build per-source breakdown badge.
-function _sourceCounts(transcripts){
-  const fathom=transcripts.filter(t=>t.source==='fathom').length;
-  const granola=transcripts.filter(t=>t.source==='granola').length;
-  const untagged=transcripts.length-fathom-granola; // legacy entries from before source tagging
-  return{fathom,granola,untagged,total:transcripts.length};
-}
 function _hasFathomConfigured(){return!!localStorage.getItem('doss_fathomkey')&&!!localStorage.getItem('doss_proxyurl');}
-function _hasGranolaConfigured(){return!!localStorage.getItem('doss_granolakey')&&!!localStorage.getItem('doss_granolaproxy');}
 const CTX_BAR_STATES={
   'no-key':{
     icon:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>`,
     title:()=>'No prior-call source configured',
-    sub:()=>`Add a Fathom or Granola key in <a onclick="document.getElementById('settingsPanel').classList.add('open');document.getElementById('settingsBtn').classList.add('active');">Settings</a> to pull prior call context.`,
+    sub:()=>`Add a Fathom key in <a onclick="document.getElementById('settingsPanel').classList.add('open');document.getElementById('settingsBtn').classList.add('active');">Settings</a> to pull prior call context.`,
     right:()=>'',
   },
   'gathering':{
     icon:`<span class="spinner dark"></span>`,
     title:()=>'Searching prior calls…',
-    sub:()=>'Pulling Fathom recordings and/or Granola notes.',
+    sub:()=>'Pulling Fathom recordings.',
     right:()=>'',
   },
   'has-transcripts':{
     icon:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>`,
     title:(m,transcripts)=>{
-      const counts=_sourceCounts(transcripts);
+      const total=transcripts.length;
       const fetchedAgo=timeAgo(STATE.contextFetchTime[m.id]);
-      let breakdown='';
-      if(counts.fathom>0&&counts.granola>0){
-        breakdown=` <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;">(${counts.fathom}F + ${counts.granola}G)</span>`;
-      }else if(counts.granola>0){
-        breakdown=` <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;">(Granola)</span>`;
-      }else if(counts.fathom>0){
-        breakdown=` <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;">(Fathom)</span>`;
-      }
-      return`${counts.total} call${counts.total!==1?'s':''} in context${breakdown}${fetchedAgo?` <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;margin-left:6px;">${fetchedAgo}</span>`:''}`;
+      return`${total} call${total!==1?'s':''} in context${fetchedAgo?` <span style="font-family:var(--mono);font-size:10px;color:var(--dk-text-muted);font-weight:400;margin-left:6px;">${fetchedAgo}</span>`:''}`;
     },
     sub:(m,transcripts)=>{
       const callList=transcripts.map(t=>{
         const d=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-        const sourceMark=t.source==='granola'
-          ?` <span style="color:var(--accent);font-family:var(--mono);font-size:9px;font-weight:600;">G</span>`
-          :t.source==='fathom'
-          ?` <span style="color:var(--dk-text-muted);font-family:var(--mono);font-size:9px;font-weight:600;">F</span>`
-          :'';
-        return`<span style="display:block;font-size:10.5px;color:var(--dk-text-secondary);line-height:1.6;">${esc(t.title||'Untitled')}${sourceMark}${d?` <span style="color:var(--dk-text-muted)">— ${d}</span>`:''}</span>`;
+        return`<span style="display:block;font-size:10.5px;color:var(--dk-text-secondary);line-height:1.6;">${esc(t.title||'Untitled')}${d?` <span style="color:var(--dk-text-muted)">— ${d}</span>`:''}</span>`;
       }).join('');
-      // Refresh links per-source so user can refetch one without losing the other
-      const refreshLinks=[];
-      if(_hasFathomConfigured())refreshLinks.push(`<a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh Fathom</a>`);
-      if(_hasGranolaConfigured())refreshLinks.push(`<a onclick="gatherGranolaContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh Granola</a>`);
-      const linkRow=[`<a onclick="clearTranscripts('${m.id}')">Clear</a>`,...refreshLinks].join(' · ');
+      const linkRow=[`<a onclick="clearTranscripts('${m.id}')">Clear</a>`,`<a onclick="gatherFathomContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Refresh</a>`].join(' · ');
       return`${callList}<span style="display:block;margin-top:4px;font-size:10.5px;">${linkRow}</span>`;
     },
     right:(m,transcripts)=>`<div class="context-bar-badge">${transcripts.length}</div>`,
@@ -838,12 +797,7 @@ const CTX_BAR_STATES={
   'idle':{
     icon:`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`,
     title:()=>'Pull prior call context',
-    sub:()=>{
-      const sources=[];
-      if(_hasFathomConfigured())sources.push('Fathom recordings');
-      if(_hasGranolaConfigured())sources.push('Granola notes');
-      return`Search ${sources.join(' + ')||'configured sources'} for every prior call with this account.`;
-    },
+    sub:()=>'Search Fathom recordings for every prior call with this account.',
     right:(m)=>`<button class="context-bar-gather" onclick="gatherContext(getCurrentMeetings().find(x=>x.id==='${m.id}'))">Gather Context</button>`,
   },
 };
@@ -916,7 +870,7 @@ function renderDealRoomPane(m){
   const hasTranscripts=Array.isArray(transcripts)&&transcripts.length>0;
   const isGathering=!!STATE.gatheringContext[m.id];
   const isChatting=STATE.generating[m.id]==='chat';
-  const anySourceConfigured=_hasFathomConfigured()||_hasGranolaConfigured();
+  const anySourceConfigured=_hasFathomConfigured();
 
   // Capture scroll position from the existing #tcMsgs (if any) so the user doesn't
   // get yanked to bottom every re-render.
@@ -996,18 +950,15 @@ function renderDealRoomPane(m){
   });
 }
 
-// ── GATHER CONTEXT (FATHOM + GRANOLA) ──
-// Wrapper that runs both sources in parallel based on which are configured.
+// ── GATHER CONTEXT (FATHOM) ──
+// Wrapper that runs the Fathom fetch when configured.
 async function gatherContext(m){
   if(!m)return;
-  const promises=[];
-  if(_hasFathomConfigured())promises.push(gatherFathomContext(m));
-  if(_hasGranolaConfigured())promises.push(gatherGranolaContext(m));
-  if(!promises.length){
-    alert('Configure Fathom or Granola in Settings first.');
+  if(!_hasFathomConfigured()){
+    alert('Configure Fathom in Settings first.');
     return;
   }
-  await Promise.allSettled(promises);
+  await gatherFathomContext(m);
 }
 
 // Replace transcripts of one source while preserving other sources.
@@ -1035,7 +986,7 @@ async function gatherFathomContext(m){
   const externalDomains=getExternalDomains(m,STATE.orgDomain);
   if(!externalDomains.length){alert('No external attendees found for this meeting.');return;}
   console.log('Doss: gathering Fathom context for domains:',externalDomains.join(', '));
-  // Wipe only Fathom entries; preserve Granola
+  // Wipe existing Fathom entries before refetching
   _mergeTranscriptsBySource(m.id,'fathom',[]);
   STATE.gatheringContext[m.id]=true;
   renderDealRoomPane(m);
@@ -1078,113 +1029,7 @@ async function gatherFathomContext(m){
   }catch(e){
     console.error('Doss: Fathom error:',e);
     alert(`Fathom error: ${e.message}`);
-    // Keep whatever Granola entries existed; just don't add Fathom
-  }
-  delete STATE.gatheringContext[m.id];
-  renderDealRoomPane(m);
-  updateActionBtns(m);
-}
-
-// ── GATHER GRANOLA CONTEXT ──
-// Granola's public API doesn't filter by attendee domain server-side, so we list
-// recent notes (90 days) and fetch each to check attendees client-side. Concurrency
-// limited to stay under Granola's 5 req/sec sustained rate limit.
-async function gatherGranolaContext(m){
-  if(!m)return;
-  const key=localStorage.getItem('doss_granolakey')||'';
-  const proxy=(localStorage.getItem('doss_granolaproxy')||'').replace(/\/$/,'');
-  const token=localStorage.getItem('doss_granolatoken')||'';
-  if(!key){alert('Add your Granola API key in Settings first.');return;}
-  if(!proxy){alert('Add your Granola Proxy URL in Settings first.');return;}
-  if(!STATE.orgDomain&&STATE.accessToken){
-    await fetchOrgDomain(STATE.accessToken);
-  }
-  if(!STATE.orgDomain){alert('Could not detect your org domain. Sign out and back in, or check Google permissions.');return;}
-
-  const externalDomains=getExternalDomains(m,STATE.orgDomain);
-  if(!externalDomains.length){alert('No external attendees found for this meeting.');return;}
-  console.log('Doss: gathering Granola context for domains:',externalDomains.join(', '));
-
-  // Wipe only Granola entries; preserve Fathom
-  _mergeTranscriptsBySource(m.id,'granola',[]);
-  STATE.gatheringContext[m.id]=true;
-  renderDealRoomPane(m);
-
-  const headers={'X-Granola-Key':key,'Content-Type':'application/json'};
-  if(token)headers['X-Doss-Token']=token;
-
-  try{
-    // Step 1: list all notes from the last 90 days (paginate). Limited fields per note here —
-    // attendees come from get-note in step 2.
-    const ninetyDaysAgo=new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate()-90);
-    const allNotes=[];
-    let cursor=null,pageGuard=0;
-    do{
-      const params=new URLSearchParams({page_size:'30',created_after:ninetyDaysAgo.toISOString()});
-      if(cursor)params.append('cursor',cursor);
-      const listRes=await fetch(`${proxy}/notes?${params}`,{headers});
-      if(!listRes.ok){
-        const err=await listRes.json().catch(()=>({}));
-        throw new Error(err.error?.message||`Granola list ${listRes.status}`);
-      }
-      const data=await listRes.json();
-      allNotes.push(...(data.notes||[]));
-      cursor=data.hasMore?data.cursor:null;
-      pageGuard++;
-      if(pageGuard>50){console.warn('Doss: Granola pagination guard hit');break;} // ~1500 notes max
-    }while(cursor);
-
-    console.log(`Doss: ${allNotes.length} Granola notes in last 90 days, fetching details…`);
-
-    // Step 2: fetch each note's full detail in batches. 5 concurrent under Granola's
-    // 5 req/sec sustained limit. Filter by attendee/invitee email domain matching externalDomains.
-    const matched=[];
-    const BATCH=5;
-    for(let i=0;i<allNotes.length;i+=BATCH){
-      const batch=allNotes.slice(i,i+BATCH);
-      const details=await Promise.all(batch.map(async n=>{
-        try{
-          const r=await fetch(`${proxy}/notes/${n.id}`,{headers});
-          if(!r.ok)return null;
-          return await r.json();
-        }catch(_){return null;}
-      }));
-      for(const d of details){
-        if(!d)continue;
-        const attEmails=(d.attendees||[]).map(a=>a.email||'').filter(Boolean);
-        const inviteeEmails=((d.calendar_event||{}).invitees||[]).map(iv=>iv.email||'').filter(Boolean);
-        const allEmails=[...attEmails,...inviteeEmails];
-        const hasMatchingDomain=allEmails.some(e=>{
-          const dom=emailDomain(e);
-          return externalDomains.includes(dom);
-        });
-        if(hasMatchingDomain){
-          // Use summary_markdown as primary content (high signal). Fall back to summary_text.
-          // Granola summaries are already condensed — they're the value-add over raw transcripts.
-          matched.push({
-            id:d.id,
-            title:d.title||'Untitled',
-            date:d.created_at||d.calendar_event?.scheduled_start_time||null,
-            transcript:d.summary_markdown||d.summary_text||'(no summary available)',
-            source:'granola',
-          });
-        }
-      }
-    }
-
-    matched.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
-    console.log(`Doss: ${matched.length} Granola notes match domains ${externalDomains.join(', ')}`);
-
-    _mergeTranscriptsBySource(m.id,'granola',matched);
-    const pillBtn=document.querySelector('.pill-opt[data-tab="dealroom"]');
-    if(pillBtn&&STATE.transcripts[m.id].length>0&&!pillBtn.querySelector('.pill-dot'))pillBtn.insertAdjacentHTML('beforeend','<span class="pill-dot"></span>');
-    STATE.contextFetchTime[m.id]=Date.now();
-    saveTranscripts();
-  }catch(e){
-    console.error('Doss: Granola error:',e);
-    alert(`Granola error: ${e.message}`);
-    // Keep whatever Fathom entries existed; just don't add Granola
+    // On error, leave existing entries untouched; just don't add new Fathom data
   }
   delete STATE.gatheringContext[m.id];
   renderDealRoomPane(m);
@@ -1264,11 +1109,8 @@ Read the question before you answer it. If Will is asking for a list — tech st
 
 If Will asks for a read and you're not sure where something stands, say that directly and name what's missing. Don't construct a confident-sounding answer from ambiguous evidence. He'd rather know what's unclear than get a read that sounds real but isn't.
 
-ON READING TRANSCRIPTS AND NOTES:
-You receive two kinds of source material, tagged in headers:
-- [FATHOM TRANSCRIPT] — verbatim speech-to-text recording. Best for exact quotes, phrasing, what was actually said. Noisy (transcription errors, filler words).
-- [GRANOLA NOTES] — curated AI-augmented notes captured live. Higher signal density, already condensed. Less verbatim but closer to the actual takeaway.
-When both exist for the same meeting, treat Granola as the structural read and Fathom as the verbatim record. When Will asks "what did they say about X" → quote Fathom. When Will asks "what's the read on this account" → lean on Granola first, validate against Fathom.
+ON READING TRANSCRIPTS:
+Source material is [FATHOM TRANSCRIPT] — verbatim speech-to-text recording. Best for exact quotes, phrasing, what was actually said. It's noisy (transcription errors, filler words), so read through the noise to what the person actually meant. When Will asks "what did they say about X" → quote it directly.
 
 Read every call. Earlier calls contain the first version of what someone said — which is often more honest than what they said later once they'd been through a demo and started managing the conversation. The delta between what someone said in call one and what they're saying now is itself information. Always flag meaningful shifts in language, position, or energy across calls. If someone used to say "when we do this" and now says "if we decide to move forward," that's not a small thing. Name it.
 
@@ -1438,14 +1280,13 @@ function buildToc(){
 // Two-pass budget allocation. Earlier version split equally per transcript and wasted
 // the leftover when shorter calls didn't fill their share. Now: short calls take what
 // they need, long calls split the remainder. Recent calls still come first.
-// Source labels in headers tell Claude whether each entry is verbatim Fathom transcript
-// or distilled Granola notes — affects how it weighs quotes vs reads.
+// Source labels in headers mark each entry as a verbatim Fathom transcript.
 function buildTranscriptContext(transcripts, charBudget){
   if(!transcripts||!transcripts.length)return'';
   const SEP_OVERHEAD=15; // approx chars added per transcript for joiners
   const HEADER_FN=(i,t)=>{
     const date=t.date?new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    const sourceTag=t.source==='granola'?'[GRANOLA NOTES]':t.source==='fathom'?'[FATHOM TRANSCRIPT]':'[CALL]';
+    const sourceTag=t.source==='fathom'?'[FATHOM TRANSCRIPT]':'[CALL]';
     return`=== ${i===0?'[MOST RECENT]':'[PRIOR]'} ${sourceTag} ${t.title}${date?' — '+date:''} ===\n`;
   };
   // Pass 1: figure out per-transcript allocations. Short transcripts take their actual length;
@@ -1552,10 +1393,7 @@ ${ALEPH_CONTEXT}
 
 WILL'S IDENTITY: Will Kraft is the AE. He appears as "Will", "Will Kraft", or will.kraft@getaleph.com. Other Aleph people are his colleagues — not the prospect.
 
-Prior call context is your PRIMARY source. It comes tagged by source:
-- [FATHOM TRANSCRIPT] — verbatim recording. Use for exact quotes.
-- [GRANOLA NOTES] — distilled AI-augmented notes. Use for the structural read of where things stand.
-When both exist for the same meeting, lean on Granola for the read and Fathom for the quote. Public research fills gaps only where the transcripts and notes are silent.
+Prior call context is your PRIMARY source — [FATHOM TRANSCRIPT] entries are verbatim recordings; use them for exact quotes and the read on where things stand. Public research fills gaps only where the transcripts are silent.
 
 {{PRIOR_CALL_CONTEXT}}
 
@@ -1638,7 +1476,7 @@ function getBriefSystemBlocks(meetingId){
     const ctx=buildTranscriptContext(transcripts,40000);
     blocks.push({
       type:'text',
-      text:`PRIOR CALL CONTEXT — PRIMARY INTELLIGENCE SOURCE. Tagged by source: [FATHOM TRANSCRIPT] is verbatim recording, [GRANOLA NOTES] is distilled AI notes. Weight everything here above public research.\n\n${ctx}\n\nUse web research only to fill gaps the transcripts and notes don't cover.`,
+      text:`PRIOR CALL CONTEXT — PRIMARY INTELLIGENCE SOURCE. [FATHOM TRANSCRIPT] entries are verbatim recordings. Weight everything here above public research.\n\n${ctx}\n\nUse web research only to fill gaps the transcripts don't cover.`,
       cache_control:{type:'ephemeral'}
     });
   }
@@ -1764,7 +1602,7 @@ async function generateBrief(m){
       signal:abort.signal,
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'prompt-caching-2024-07-31','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:STATE.model,max_tokens:4000,stream:true,system:getBriefSystemBlocks(m.id),
-        messages:[{role:'user',content:`Build a dossier. ONLY research EXTERNAL attendees. Do NOT mention anyone from my company (${org||'my company'}).\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n${m.location?'Location: '+m.location:''}\n\nEXTERNAL ATTENDEES:\n${attInfo}\n\n${intNames?'Internal (SKIP): '+intNames:''}\n\n${hasPriorCalls?'NOTE: Prior call context is in the system prompt, tagged by source ([FATHOM TRANSCRIPT] = verbatim, [GRANOLA NOTES] = distilled). Lead with what was uncovered there before supplementing with web research.':''}`}],
+        messages:[{role:'user',content:`Build a dossier. ONLY research EXTERNAL attendees. Do NOT mention anyone from my company (${org||'my company'}).\n\nMeeting: ${m.title}\nTime: ${formatTimeRange(m.startTime,m.endTime)} ${getTzAbbr()}\n${m.location?'Location: '+m.location:''}\n\nEXTERNAL ATTENDEES:\n${attInfo}\n\n${intNames?'Internal (SKIP): '+intNames:''}\n\n${hasPriorCalls?'NOTE: Prior call context ([FATHOM TRANSCRIPT] = verbatim recording) is in the system prompt. Lead with what was uncovered there before supplementing with web research.':''}`}],
         tools:[{type:'web_search_20250305',name:'web_search'}]})});
     const ct=res.headers.get('content-type')||'';
     if(!res.ok||!ct.includes('text/event-stream')){
@@ -1864,9 +1702,6 @@ function wireKeyInput(inputId,barId,storageKey,validator){
 wireKeyInput('apiKey','apiBar','doss_apikey',v=>v.startsWith('sk-ant-'));
 wireKeyInput('fathomKey','fathomBar','doss_fathomkey',v=>!!v);
 wireKeyInput('proxyUrl','proxyBar','doss_proxyurl',v=>!!v);
-wireKeyInput('granolaKey','granolaBar','doss_granolakey',v=>!!v);
-wireKeyInput('granolaProxyUrl','granolaProxyBar','doss_granolaproxy',v=>!!v);
-wireKeyInput('granolaToken','granolaTokenBar','doss_granolatoken',v=>!!v);
 document.getElementById('settingsBtn').addEventListener('click',()=>{
   const p=document.getElementById('settingsPanel'),b=document.getElementById('settingsBtn');
   p.classList.toggle('open');b.classList.toggle('active',p.classList.contains('open'));
