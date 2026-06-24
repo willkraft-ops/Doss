@@ -458,13 +458,30 @@ async function fetchOrgDomain(token,attempt=0){
     const ui=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${token}`}});
     if(!ui.ok)throw new Error(`userinfo ${ui.status}`);
     const ud=await ui.json();
-    if(ud?.email){STATE.orgDomain=emailDomain(ud.email);return true;}
+    if(ud?.email){
+      const authoritative=emailDomain(ud.email);
+      const prev=STATE.orgDomain;
+      STATE.orgDomain=authoritative; // userinfo is the source of truth for your own domain
+      // If the day already rendered using a domain guessed from attendees (detectOrgDomain)
+      // and that guess was wrong, rebuild so external-call filtering is correct. Rare.
+      if(prev&&prev!==authoritative)reconcileOrgDomain();
+      return true;
+    }
     return false;
   }catch(e){
     console.warn(`Doss: userinfo fetch failed (attempt ${attempt+1}):`,e);
     if(attempt<1){await new Promise(r=>setTimeout(r,1500));return fetchOrgDomain(token,attempt+1);}
     return false;
   }
+}
+// Authoritative org domain arrived after the day was already filtered with a guessed one.
+// Drop the cached (mis-filtered) days and reload, so the external-call list is correct.
+// Keeps the fast path fast — the day still renders immediately on the guess and self-corrects
+// only on the rare occasions the guess was wrong.
+function reconcileOrgDomain(){
+  console.warn('Doss: org domain corrected to',STATE.orgDomain,'— rebuilding day cache.');
+  STATE.dayCache={};
+  if(STATE.accessToken){loadCurrentDay();backgroundLoadWeek();}
 }
 function initGoogleAuth(){
   if(typeof google==='undefined'||!google.accounts){setTimeout(initGoogleAuth,200);return;}
@@ -946,7 +963,7 @@ function renderDealRoomPane(m){
   }
   if(tcSend)tcSend.addEventListener('click',()=>sendDealRoomMsg(m));
   if(tcCancel)tcCancel.addEventListener('click',()=>{
-    const a=STATE.aborts[m.id];if(a)a.abort();
+    const a=STATE.aborts[m.id+':chat'];if(a)a.abort();
   });
 }
 
@@ -1050,6 +1067,10 @@ async function sendDealRoomMsg(m){
   const msg=input.value.trim();if(!msg)return;
   if(STATE.generating[m.id]==='chat')return; // already in flight
   if(!STATE.tcChats[m.id])STATE.tcChats[m.id]=[];
+  // Only paint the deal-room pane while THIS meeting is the one on screen.
+  // Lets a chat finish in the background after the user switches meetings without
+  // rendering this reply into a different meeting's pane. State always persists.
+  const isActive=()=>STATE.activeMeetingId===m.id;
 
   // Append-only path: push to state, append the user bubble, append a thinking placeholder.
   // No full pane re-render until completion (or context-bar state change).
@@ -1069,7 +1090,7 @@ async function sendDealRoomMsg(m){
   }
   // Wire abort
   const abort=new AbortController();
-  STATE.aborts[m.id]=abort;
+  STATE.aborts[m.id+':chat']=abort;
   const cancelEl=document.getElementById('tcCancel');
   if(cancelEl){cancelEl.addEventListener('click',()=>abort.abort());}
 
@@ -1182,6 +1203,7 @@ Competitive dynamics. When a prospect is talking to multiple vendors, they rarel
       };
       const renderTick=()=>{
         renderScheduled=false;
+        if(!isActive())return; // user navigated away — don't paint into another meeting's pane
         const lastBreak=rawReply.lastIndexOf('\n\n');
         if(lastBreak<=lastRendered)return; // no new paragraph boundary
         lastRendered=lastBreak;
@@ -1222,7 +1244,7 @@ Competitive dynamics. When a prospect is talking to multiple vendors, they rarel
           ?'Rate limit hit — wait a moment and try again.'
           :`API error: ${data.error.message}`;
         STATE.tcChats[m.id].push({role:'assistant',content:errMsg});
-        saveChats();delete STATE.generating[m.id];delete STATE.aborts[m.id];renderDealRoomPane(m);return;
+        saveChats();delete STATE.generating[m.id];delete STATE.aborts[m.id+':chat'];if(isActive())renderDealRoomPane(m);return;
       }
       rawReply=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
     }
@@ -1246,10 +1268,12 @@ Competitive dynamics. When a prospect is talking to multiple vendors, they rarel
     }
   }
   delete STATE.generating[m.id];
-  delete STATE.aborts[m.id];
+  delete STATE.aborts[m.id+':chat'];
   // Final render — at this point chat state changed enough to justify a full pane render
   // (Cancel button needs to flip back to Ask, placeholder is gone, new assistant msg is in state).
-  renderDealRoomPane(m);
+  // Guard on active meeting: if the user switched away, state is saved and the pane
+  // rebuilds correctly when they return — don't paint this reply into another meeting.
+  if(isActive())renderDealRoomPane(m);
 }
 
 // ── TOC ──
@@ -1585,10 +1609,11 @@ async function generateBrief(m){
   const apiKey=document.getElementById('apiKey').value.trim();if(!apiKey){alert('Enter your Anthropic API key in Settings.');return;}
   // Switch to brief tab if called from deal room
   if(STATE.activeTab!=='brief')setActiveTab('brief');
-  // Abort any existing stream for this meeting (e.g. regen mid-flight)
-  if(STATE.aborts[m.id]){STATE.aborts[m.id].abort();delete STATE.aborts[m.id];}
+  // Abort any existing BRIEF stream for this meeting (e.g. regen mid-flight).
+  // Namespaced ':brief' so this never cancels an in-flight deal-room chat on the same meeting.
+  if(STATE.aborts[m.id+':brief']){STATE.aborts[m.id+':brief'].abort();delete STATE.aborts[m.id+':brief'];}
   const abort=new AbortController();
-  STATE.aborts[m.id]=abort;
+  STATE.aborts[m.id+':brief']=abort;
 
   STATE.generating[m.id]='brief';STATE.briefs[m.id]='';renderMeetingList();
   if(STATE.activeMeetingId===m.id){renderBriefPane(m);updateActionBtns(m);}
@@ -1616,7 +1641,7 @@ async function generateBrief(m){
     if(e.name==='AbortError')return; // clean cancel — no error state
     console.error(e);STATE.briefs[m.id]=`<p style="color:var(--red)">Error: ${e.message}</p>`;
   }
-  delete STATE.aborts[m.id];
+  delete STATE.aborts[m.id+':brief'];
   delete STATE.generating[m.id];
   saveBriefs();renderMeetingList();
   // Only re-render the pane if this meeting is still active
